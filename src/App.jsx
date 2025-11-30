@@ -4,6 +4,7 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import Card from './components/card.jsx';
 import NavBar from './components/NavBar.jsx';
+import Footer from './components/Footer.jsx';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -11,6 +12,8 @@ function App() {
   return (
     <div className="App bg-white min-h-screen">
     <NavBar />
+    
+    <Footer/>
       
     
     </div>

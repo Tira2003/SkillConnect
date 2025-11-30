@@ -99,7 +99,7 @@ export default function NavBar() {
             <button
               onClick={() => setOpen(false)}
               className="w-full px-4 py-2 rounded-xl text-white font-semibold 
-                bg-gradient-to-r from-[#7D4DF4] to-[#A589FD] shadow-md shadow-[#7D4DF4]/40 hover:opacity-90 transition"
+                bg-linear-to-r from-[#7D4DF4] to-[#A589FD] shadow-md shadow-[#7D4DF4]/40 hover:opacity-90 transition"
             >
               Sign Up
             </button>
