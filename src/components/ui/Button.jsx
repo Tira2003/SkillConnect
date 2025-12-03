@@ -2,13 +2,13 @@ const Button2 = ({ children, className = "", ...props }) => {
   return (
     <button 
       className={`px-6 py-2.5 text-sm font-semibold text-white 
-        bg-gradient-to-br from-purple-900/30 via-purple-800/20 to-purple-700/30
+        bg-gradient-to-br from-purple-900/30 via-purple-800/20 to-purple-700/40
         backdrop-blur-md
         border border-white/30
         rounded-lg
-        shadow-lg shadow-black/30
-        hover:bg-gradient-to-br hover:from-purple-900/40 hover:via-purple-900/30 hover:to-purple-900/40
-        hover:shadow-xl hover:shadow-purple-500/50
+        shadow-lg shadow-gray-400/30
+        hover:bg-gradient-to-br hover:from-purple-500/40 hover:via-purple-800/30 hover:to-purple-600/40
+        hover:shadow-xl hover:shadow-purple-300
         hover:border-purple-400/50
         hover:scale-105
         transition-all duration-300

@@ -57,11 +57,32 @@ export const ChatProvider = ({ children }) => {
     setSelectedChat(chat);
   };
 
+  const handleSendMessage = (messageText) => {
+    if (!messageText.trim()) return;
+
+    const newMessage = {
+      id: Date.now(),
+      text: messageText,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sender: 'me',
+    };
+
+    const updatedChats = chats.map(chat => {
+      if (chat.id === selectedChat.id) {
+        const updatedChat = { ...chat, messages: [...chat.messages, newMessage] };
+        setSelectedChat(updatedChat);
+        return updatedChat;
+      }
+      return chat;
+    });
+    setChats(updatedChats);
+  };
+
   const value = {
     chats,
     selectedChat,
-    setChats,
     onSelectChat: handleSelectChat,
+    onSendMessage: handleSendMessage,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

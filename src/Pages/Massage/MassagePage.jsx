@@ -25,7 +25,7 @@ const MassagePage = () => {
           </div>
         </div>
       </div>
-    </ChatProvider>
+  </ChatProvider> 
   );
 };
 
