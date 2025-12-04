@@ -44,9 +44,7 @@ const MessageInput = () => {
           />
         </div>
 
-        <Button2 className="flex items-center gap-2" onClick={handleSend}>
           <Send className="w-4 h-4" />
-          <span className="text-sm font-medium">Send</span>
         </Button2>
         
       </div>
