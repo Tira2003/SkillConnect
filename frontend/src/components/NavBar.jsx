@@ -37,7 +37,7 @@ export default function NavBar() {
   }, []);
 
   const links = [
-    { label: "Home", to: "/" },
+    { label: "Home", to: "/home" },
     { label: "Skill Search", to: "/skill-search" },
     { label: "Skill Request", to: "/skill-request" },
     { label: "Community", to: "/community" },

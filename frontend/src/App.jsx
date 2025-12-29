@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import './App.css';
 import FloatingChatButton from './components/FloatingChatButton.jsx';
 import LoginPage from './Pages/Login/LoginForm.jsx';
@@ -8,8 +8,20 @@ import SkillRequest from './Pages/SkillRequest/Components/SkillRequest.jsx';
 import Community from './Pages/Community/Community.jsx';
 import MessagePage from './Pages/Message/MessagePage.jsx';
 import Profile from './Pages/Profile/Profile.jsx';
+import ProfileOwnerView from './Pages/Profile/ProfileOwnerView.jsx';
 import Signup from './Pages/Signup/CreateAccountForm.jsx';
 import AuthModal from './components/AuthModal.jsx';
+
+function ConditionalFloatingChat() {
+    const location = useLocation();
+    const hiddenPaths = ['/', '/signup', '/signin'];
+    
+    if (hiddenPaths.includes(location.pathname)) {
+        return null;
+    }
+    
+    return <FloatingChatButton />;
+}
 
 function App() {
 
@@ -18,6 +30,7 @@ function App() {
             <Routes>
                 {/*<Route path="/" element={<Profile />} />*/}
                 <Route path="/" element={<LoginPage />} />
+                <Route path="/home" element={<Home />} />
                 <Route path="/skill-search" element={<SkillSearch />} />
                 <Route path="/skill-request" element={<SkillRequest />} />
                 <Route path="/community" element={<Community />} />
@@ -25,10 +38,10 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/signin" element={<LoginPage />} />
-                <Route path="/profileown" element={<Profileown />} />
+                <Route path="/profileown" element={<ProfileOwnerView />} />
             </Routes>
 
-            <FloatingChatButton />
+            <ConditionalFloatingChat />
             {/* Global Auth Modal */}
             <AuthModal />
         </Router>

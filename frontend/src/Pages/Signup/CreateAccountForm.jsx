@@ -84,6 +84,7 @@ export default function CreateAccountForm() {
             role: "employee", department: "", password: "", confirmPassword: ""
           });
           setShowSuccess(false);
+          navigate("/signin");
         }, 3000);
       } else {
         setErrors({ general: result.message || "Failed to create account" });
