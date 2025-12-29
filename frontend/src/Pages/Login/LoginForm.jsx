@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logoImage from "../../assets/skilllogo.png";
+import { useAuth } from "../../AuthContext.jsx";
 
 function LoginPageV2() {
     const [email, setEmail] = useState("");
@@ -9,6 +10,7 @@ function LoginPageV2() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -26,15 +28,13 @@ function LoginPageV2() {
 
             const data = await res.json();
 
-            if (res.ok && data.success) {
-                // ✅ STORE AUTH DATA
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("userId", data.user.id);
-
+            if (res.ok && data.success && data.token && data.user) {
+                // persist auth and redirect
+                login(data.token, data.user);
                 setTimeout(() => {
                     setIsLoading(false);
-                    navigate("/profileown"); // now profile can load correctly
-                }, 800);
+                    navigate("/");
+                }, 500);
             } else {
                 setIsLoading(false);
                 alert(data.message || "Invalid credentials");
