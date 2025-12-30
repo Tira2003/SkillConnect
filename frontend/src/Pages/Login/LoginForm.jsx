@@ -33,7 +33,7 @@ function LoginPageV2() {
                 login(data.token, data.user);
                 setTimeout(() => {
                     setIsLoading(false);
-                navigate("/home");
+                navigate("/");
                 }, 500);
             } else {
                 setIsLoading(false);

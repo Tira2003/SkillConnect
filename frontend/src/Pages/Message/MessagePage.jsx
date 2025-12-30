@@ -8,7 +8,7 @@ import { ChatProvider } from './ChatContext';
 const MessagePage = () => {
   return ( 
     <ChatProvider>
-      <div className="w-6xl flex flex-col h-screen bg-white font-sans">
+      <div className="w-full flex flex-col h-screen bg-white font-sans">
         <NavBar />
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="bg-white w-full max-w-6xl h-[85vh] rounded-2xl shadow-2xl flex overflow-hidden border border-white">
