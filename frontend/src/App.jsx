@@ -11,6 +11,9 @@ import Profile from './Pages/Profile/Profile.jsx';
 import ProfileOwnerView from './Pages/Profile/ProfileOwnerView.jsx';
 import Signup from './Pages/Signup/CreateAccountForm.jsx';
 import AuthModal from './components/AuthModal.jsx';
+import Profileown from "./Pages/Profile/ProfileOwnerView.jsx";
+import ProfileViewerView from "./Pages/Profile/ProfileViewerView.jsx";
+import { useActivityTracker } from './useActivityTracker';
 
 function ConditionalFloatingChat() {
     const location = useLocation();
@@ -24,21 +27,23 @@ function ConditionalFloatingChat() {
 }
 
 function App() {
+    // Track user activity
+    useActivityTracker();
 
     return (
         <Router>
             <Routes>
                 {/*<Route path="/" element={<Profile />} />*/}
-                <Route path="/" element={<LoginPage />} />
-                <Route path="/home" element={<Home />} />
+                <Route path="/" element={<Home />} />
                 <Route path="/skill-search" element={<SkillSearch />} />
                 <Route path="/skill-request" element={<SkillRequest />} />
                 <Route path="/community" element={<Community />} />
                 <Route path="/chat" element={<MessagePage />} />
-                <Route path="/profile" element={<Profile />} />
+                {/*<Route path="/profile" element={<Profile />} />*/}
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/signin" element={<LoginPage />} />
-                <Route path="/profileown" element={<ProfileOwnerView />} />
+                <Route path="/profile" element={<Profileown />} />
+                <Route path="/profile/:userId" element={<ProfileViewerView />} />
             </Routes>
 
             <ConditionalFloatingChat />

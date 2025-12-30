@@ -1,47 +1,14 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import NavBar from "../../components/NavBar";
+import { useAuth } from "../../AuthContext";
 
 export default function CommunityPage() {
+  const { user, isAuthenticated } = useAuth();
   const tabs = ["Discussions", "Mentorship", "Events", "Groups"];
   const [activeTab, setActiveTab] = useState("Discussions");
-
-  const initialData = [
-    {
-      id: 1,
-      title: "Best practices for learning React in 2024?",
-      author: "Alex Chen",
-      replies: 23,
-      views: 145,
-      category: "Coding",
-      tags: ["React", "Learning", "BestPractices"],
-      lastActivity: "5m ago",
-      content: "What are the best resources and routine to learn React effectively?",
-    },
-    {
-      id: 2,
-      title: "Looking for study group - Data Structures",
-      author: "Sarah Johnson",
-      replies: 12,
-      views: 89,
-      category: "Academics",
-      tags: ["DSA", "StudyGroup"],
-      lastActivity: "1h ago",
-      content: "Forming a study group to prepare for upcoming exams.",
-    },
-  ];
-
-  const allTags = [
-    "React",
-    "JavaScript",
-    "DSA",
-    "WebDev",
-    "Career",
-    "StudyGroup",
-    "BestPractices",
-    "Learning",
-  ];
-
-  const [discussions, setDiscussions] = useState(initialData);
+  const [discussions, setDiscussions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [allTags, setAllTags] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedTags, setSelectedTags] = useState([]);
@@ -51,11 +18,50 @@ export default function CommunityPage() {
   // new discussion form state
   const [form, setForm] = useState({
     title: "",
-    author: "",
     category: "",
     tags: [],
     content: "",
   });
+
+  // Fetch discussions from backend
+  useEffect(() => {
+    fetchDiscussions();
+    fetchPopularTags();
+  }, [selectedCategory, selectedTags, sortBy]);
+
+  const fetchDiscussions = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedCategory !== "All") params.append("category", selectedCategory);
+      if (selectedTags.length > 0) params.append("tags", selectedTags.join(","));
+      if (sortBy) params.append("sortBy", sortBy);
+
+      const response = await fetch(`http://localhost:5000/api/discussions?${params}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setDiscussions(data.discussions);
+      }
+    } catch (error) {
+      console.error("Error fetching discussions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPopularTags = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/discussions/tags?limit=10");
+      const data = await response.json();
+      
+      if (data.success) {
+        setAllTags(data.tags.map(t => t.tag));
+      }
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    }
+  };
 
   function toggleTag(tag) {
     setSelectedTags((prev) =>
@@ -73,65 +79,104 @@ export default function CommunityPage() {
   function filteredDiscussions() {
     return discussions
       .filter((d) => {
-        if (selectedCategory !== "All" && d.category !== selectedCategory) return false;
-        if (selectedTags.length > 0 && !selectedTags.every((t) => d.tags.includes(t))) return false;
         if (search.trim() !== "") {
           const s = search.toLowerCase();
           return (
             d.title.toLowerCase().includes(s) ||
-            d.author.toLowerCase().includes(s) ||
-            d.content.toLowerCase().includes(s)
+            d.content.toLowerCase().includes(s) ||
+            (d.author?.firstName + " " + d.author?.lastName).toLowerCase().includes(s)
           );
         }
         return true;
-      })
-      .sort((a, b) => {
-        if (sortBy === "recent") return b.id - a.id; // crude recent by id
-        if (sortBy === "views") return b.views - a.views;
-        if (sortBy === "replies") return b.replies - a.replies;
-        return 0;
       });
   }
 
-  const visible = useMemo(filteredDiscussions, [discussions, search, selectedCategory, selectedTags, sortBy]);
+  const visible = useMemo(filteredDiscussions, [discussions, search]);
 
   function openModal() {
-    setForm({ title: "", author: "", category: "", tags: [], content: "" });
+    if (!isAuthenticated) {
+      alert("Please login to create a discussion");
+      return;
+    }
+    setForm({ title: "", category: "", tags: [], content: "" });
     setIsModalOpen(true);
   }
 
-  function submitForm(e) {
+  async function submitForm(e) {
     e.preventDefault();
-    const newItem = {
-      id: Date.now(),
-      title: form.title || "Untitled",
-      author: form.author || "Anonymous",
-      replies: 0,
-      views: 0,
-      category: form.category || "General",
-      tags: form.tags,
-      lastActivity: "just now",
-      content: form.content || "",
-    };
-    setDiscussions((d) => [newItem, ...d]);
-    setIsModalOpen(false);
+    
+    if (!isAuthenticated || !user) {
+      alert("Please login to create a discussion");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/discussions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          title: form.title,
+          category: form.category || "General",
+          tags: form.tags,
+          content: form.content,
+          authorId: user.id || user.userId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setDiscussions([data.discussion, ...discussions]);
+        setIsModalOpen(false);
+        setForm({ title: "", category: "", tags: [], content: "" });
+      } else {
+        alert("Failed to create discussion: " + data.message);
+      }
+    } catch (error) {
+      console.error("Error creating discussion:", error);
+      alert("Failed to create discussion");
+    }
   }
+
+  const getTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + "y ago";
+    
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + "mo ago";
+    
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + "d ago";
+    
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + "h ago";
+    
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + "m ago";
+    
+    return Math.floor(seconds) + "s ago";
+  };
 
   return (<>
     <NavBar />
-    <div className=" bg-gradient-to-br from-[#F3E8FF] to-white w-5xl shadow-xl rounded-3xl mt-15 h-[80vh] mt-20">
-      <div className="max-w-6xl mx-auto p-6">
+    <div className="min-h-screen bg-linear-to-br from-[#F3E8FF] to-white w-full">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Title */}
         <h1 className="text-2xl font-semibold mb-6 text-slate-900">Community</h1>
 
         {/* Tabs + New Button */}
         <div className="flex items-center justify-between mb-6">
-        <div className="flex bg-white border rounded-lg overflow-hidden shadow-sm">
+        <div className="flex bg-white border border-purple-200 rounded-2xl overflow-hidden shadow-sm">
           {tabs.map((t) => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
-              className={`px-6 py-2 text-sm ${activeTab === t ? "bg-gray-100 font-semibold" : "text-gray-600"}`}>
+              className={`px-6 py-2 text-sm ${activeTab === t ? "bg-purple-50 text-purple-700 font-semibold" : "text-gray-600 hover:text-purple-700"}`}>
               {t}
             </button>
           ))}
@@ -140,7 +185,7 @@ export default function CommunityPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={openModal}
-            className="bg-gray-900 text-white px-4 py-2 rounded shadow hover:bg-black"
+            className="px-4 py-2 rounded-xl bg-linear-to-r from-[#7D4DF4] to-[#A589FD] text-white shadow hover:opacity-90 transition"
           >
             New Discussion
           </button>
@@ -155,12 +200,12 @@ export default function CommunityPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search discussions, authors, or content..."
-              className="w-full border-2 border-purple-300 rounded-md px-4 py-2 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full border-2 border-purple-300 rounded-xl px-4 py-3 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-purple-600 hover:text-purple-800 transition-colors font-medium"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-purple-700 hover:text-purple-900 transition-colors font-medium"
               >
                 Clear
               </button>
@@ -173,7 +218,7 @@ export default function CommunityPage() {
               <button
                 key={tag}
                 onClick={() => toggleTag(tag)}
-                className={`text-sm px-3 py-1 rounded-full border transition-all ${selectedTags.includes(tag) ? "bg-purple-600 text-white border-purple-600" : "bg-white text-purple-700 border-purple-300 hover:border-purple-500"}`}>
+                className={`text-sm px-3 py-1 rounded-full border transition-all shadow-sm ${selectedTags.includes(tag) ? "bg-purple-600 text-white border-purple-600" : "bg-white text-purple-700 border-purple-300 hover:border-purple-500"}`}>
                 #{tag}
               </button>
             ))}
@@ -185,7 +230,7 @@ export default function CommunityPage() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="border-2 border-purple-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="border-2 border-purple-300 rounded-xl px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
           >
             <option>All</option>
             <option>Academics</option>
@@ -197,7 +242,7 @@ export default function CommunityPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="border-2 border-purple-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="border-2 border-purple-300 rounded-xl px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
           >
             <option value="recent">Sort: Recent</option>
             <option value="views">Sort: Most views</option>
@@ -208,33 +253,42 @@ export default function CommunityPage() {
 
       {/* Discussion list */}
       <div className="space-y-4">
-        {visible.map((d) => (
-          <div key={d.id} className="bg-white border rounded-lg shadow-sm p-4 flex gap-4">
-            <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-sm">IMG</div>
-
-            <div className="flex-1">
-              <h3 className="text-lg font-medium">{d.title}</h3>
-
-              <div className="flex items-center gap-3 text-xs text-gray-500 mt-2 flex-wrap">
-                <span>by {d.author}</span>
-                <span className="w-px h-4 bg-gray-300" />
-                <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-700">{d.category}</span>
-                {d.tags.map((t) => (
-                  <span key={t} className="ml-2 text-xs text-gray-500">#{t}</span>
-                ))}
-                <span className="text-gray-400">• Last activity: {d.lastActivity}</span>
+        {loading ? (
+          <div className="text-center text-gray-500 py-10 bg-white rounded-3xl border border-purple-200">
+            Loading discussions...
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="text-center text-gray-500 py-10 bg-white rounded-3xl border border-purple-200">
+            No discussions found. Be the first to start one!
+          </div>
+        ) : (
+          visible.map((d) => (
+            <div key={d._id} className="bg-white rounded-3xl shadow-lg border border-purple-200 p-6 flex gap-6 hover:shadow-purple-300/40 transition">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[#6C38FF] via-[#4C2AFF] to-[#EC38F5] flex items-center justify-center text-white text-xs font-bold shadow">
+                {d.author?.firstName?.[0]}{d.author?.lastName?.[0]}
               </div>
 
-              <div className="flex gap-8 mt-3 text-sm text-gray-700">
-                <span><strong>{d.replies}</strong> replies</span>
-                <span><strong>{d.views}</strong> views</span>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900">{d.title}</h3>
+
+                <div className="flex items-center gap-3 text-xs text-gray-500 mt-2 flex-wrap">
+                  <span>by {d.author?.firstName} {d.author?.lastName}</span>
+                  <span className="w-px h-4 bg-gray-300" />
+                  <span className="px-2 py-0.5 bg-purple-50 rounded-xl text-purple-700 border border-purple-300">{d.category}</span>
+                  {d.tags?.map((t) => (
+                    <span key={t} className="ml-2 text-xs text-purple-700 border border-purple-300 px-2 py-0.5 rounded-xl">#{t}</span>
+                  ))}
+                  <span className="text-gray-400">• {getTimeAgo(d.createdAt)}</span>
+                </div>
+
+                <div className="flex gap-8 mt-3 text-sm text-gray-700">
+                  <span><strong>{d.replies?.length || 0}</strong> replies</span>
+                  <span><strong>{d.views || 0}</strong> views</span>
+                  <span><strong>{d.likes || 0}</strong> likes</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-
-        {visible.length === 0 && (
-          <div className="text-center text-gray-500 py-10 bg-white border rounded">No discussions match your filters.</div>
+          ))
         )}
       </div>
       </div>
@@ -242,10 +296,10 @@ export default function CommunityPage() {
       {/* New Discussion Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-lg">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-purple-200">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">New Discussion</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-500">Close</button>
+              <h2 className="text-lg font-semibold text-gray-900">New Discussion</h2>
+              <button onClick={() => setIsModalOpen(false)} className="px-3 py-1 rounded-lg border border-purple-300 text-purple-700 hover:bg-purple-50 transition">Close</button>
             </div>
 
             <form onSubmit={submitForm} className="space-y-4">
@@ -254,29 +308,27 @@ export default function CommunityPage() {
                 <input
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  className="w-full border-2 border-purple-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full border-2 border-purple-300 rounded-xl px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-600">Author</label>
-                  <input
-                    value={form.author}
-                    onChange={(e) => setForm((f) => ({ ...f, author: e.target.value }))}
-                    className="w-full border-2 border-purple-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-600">Category</label>
-                  <input
-                    value={form.category}
-                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                    className="w-full border-2 border-purple-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm text-gray-600">Category</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  className="w-full border-2 border-purple-300 rounded-xl px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
+                  required
+                >
+                  <option value="">Select Category</option>
+                  <option value="Academics">Academics</option>
+                  <option value="Coding">Coding</option>
+                  <option value="Events">Events</option>
+                  <option value="General">General</option>
+                  <option value="Career">Career</option>
+                  <option value="Mentorship">Mentorship</option>
+                </select>
               </div>
 
               <div>
@@ -287,7 +339,7 @@ export default function CommunityPage() {
                       type="button"
                       key={t}
                       onClick={() => toggleFormTag(t)}
-                      className={`px-3 py-1 rounded-full text-sm border transition-all ${form.tags.includes(t) ? "bg-purple-600 text-white border-purple-600" : "bg-white text-purple-700 border-purple-300 hover:border-purple-500"}`}>
+                      className={`px-3 py-1 rounded-full text-sm border transition-all shadow-sm ${form.tags.includes(t) ? "bg-purple-600 text-white border-purple-600" : "bg-white text-purple-700 border-purple-300 hover:border-purple-500"}`}>
                       #{t}
                     </button>
                   ))}
@@ -299,13 +351,13 @@ export default function CommunityPage() {
                 <textarea
                   value={form.content}
                   onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-                  className="w-full border-2 border-purple-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent h-28"
+                  className="w-full border-2 border-purple-300 rounded-xl px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent h-28 shadow-sm"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded">Create</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl border border-purple-300 text-purple-700 hover:bg-purple-50 transition">Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded-xl bg-linear-to-r from-[#7D4DF4] to-[#A589FD] text-white shadow hover:opacity-90 transition">Create</button>
               </div>
             </form>
           </div>

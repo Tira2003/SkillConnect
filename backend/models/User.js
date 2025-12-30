@@ -51,6 +51,15 @@ const UserSchema = new mongoose.Schema(
 
         skills: { type: [skillSchema], default: [] },
         portfolioLinks: { type: [portfolioSchema], default: [] },
+
+        /* ===== GPA & ENDORSEMENTS ===== */
+        gpa: { type: Number, default: null },
+        endorsements: { type: Number, default: 0 },
+        endorsedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+
+        /* ===== ACTIVITY TRACKING ===== */
+        lastActive: { type: Date, default: Date.now },
+        isOnline: { type: Boolean, default: false },
     },
     { timestamps: true }
 );

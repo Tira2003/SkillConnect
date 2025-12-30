@@ -55,3 +55,140 @@ exports.searchUsers = async (req, res) => {
     res.json({ success: false, message: "Server error" });
   }
 };
+
+// Update user GPA
+exports.updateGPA = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { gpa } = req.body;
+
+    if (gpa === undefined || gpa === null) {
+      return res.json({ success: false, message: "GPA is required" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { gpa: parseFloat(gpa) },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, message: "GPA updated successfully", gpa: user.gpa });
+  } catch (error) {
+    console.error("Update GPA Error:", error);
+    res.json({ success: false, message: "Server error" });
+  }
+};
+
+// Toggle endorsement for a user
+exports.toggleEndorsement = async (req, res) => {
+  try {
+    const { userId } = req.params; // User being endorsed
+    const { endorserId } = req.body; // User giving the endorsement
+
+    if (!endorserId) {
+      return res.json({ success: false, message: "Endorser ID is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    const hasEndorsed = user.endorsedBy.includes(endorserId);
+
+    if (hasEndorsed) {
+      // Remove endorsement
+      user.endorsedBy = user.endorsedBy.filter(id => id.toString() !== endorserId);
+      user.endorsements = Math.max(0, user.endorsements - 1);
+    } else {
+      // Add endorsement
+      user.endorsedBy.push(endorserId);
+      user.endorsements += 1;
+    }
+
+    await user.save();
+
+    res.json({ 
+      success: true, 
+      endorsed: !hasEndorsed,
+      endorsements: user.endorsements 
+    });
+  } catch (error) {
+    console.error("Toggle Endorsement Error:", error);
+    res.json({ success: false, message: "Server error" });
+  }
+};
+
+// Get popular members based on endorsements
+exports.getPopularMembers = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+
+    const users = await User.find({})
+      .select("firstName lastName username profileImage skills endorsements gpa")
+      .sort({ endorsements: -1 })
+      .limit(limit);
+
+    res.json({ success: true, users });
+  } catch (error) {
+    console.error("Get Popular Members Error:", error);
+    res.json({ success: false, message: "Server error" });
+  }
+};
+
+// Get active members based on recent activity
+exports.getActiveMembers = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const timeThreshold = req.query.minutes || 30; // Default: active in last 30 minutes
+
+    const thresholdDate = new Date(Date.now() - timeThreshold * 60 * 1000);
+
+    const users = await User.find({
+      lastActive: { $gte: thresholdDate }
+    })
+      .select("firstName lastName username profileImage lastActive isOnline")
+      .sort({ lastActive: -1 })
+      .limit(limit);
+
+    res.json({ success: true, users });
+  } catch (error) {
+    console.error("Get Active Members Error:", error);
+    res.json({ success: false, message: "Server error" });
+  }
+};
+
+// Update user's last active time
+exports.updateActivity = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { isOnline } = req.body;
+
+    const updateData = {
+      lastActive: Date.now(),
+    };
+
+    if (isOnline !== undefined) {
+      updateData.isOnline = isOnline;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    ).select("firstName lastName lastActive isOnline");
+
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error("Update Activity Error:", error);
+    res.json({ success: false, message: "Server error" });
+  }
+};
