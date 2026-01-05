@@ -29,48 +29,28 @@ export default function Hero() {
     <div className="w-full pt-24">
       {/* Hero Section */}
       <section className="w-full bg-gradient-to-br from-[#7D4DF4] to-[#A589FD] text-white py-20">
-        <div className="w-full flex flex-col items-center px-4 sm:px-6 lg:px-8">
+        <div className="w-full flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 min-h-[400px]">
 
           {/* Heading */}
-          <h1 className="text-4xl md:text-5xl font-extrabold text-center leading-tight">
+          <h1 className="text-4xl md:text-5xl font-extrabold leading-tight max-w-4xl mx-auto">
             Find Skilled Students Inside Your University
           </h1>
 
           {/* Subtitle */}
-          <p className="mt-4 text-lg md:text-xl text-center max-w-2xl opacity-90">
-            Search for designers, developers, tutors, editors, mentors — connect and collaborate instantly.
+          <p className="mt-6 text-lg md:text-xl max-w-2xl mx-auto opacity-90">
+            Connect with designers, developers, tutors, editors, and mentors. Collaborate on projects and grow together.
           </p>
-
-          {/* Search Bar */}
-          <div className="mt-10 w-full max-w-xl">
-            <div className="flex items-center bg-white rounded-2xl shadow-xl overflow-hidden">
-              <input
-                type="text"
-                placeholder="Search for a skill (ex: Web Development, UI/UX, Java)"
-                className="w-full px-4 py-3 text-gray-700 outline-none"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-              <button 
-                onClick={handleSearch}
-                className="bg-[#7D4DF4] text-white px-6 py-3 font-semibold hover:bg-[#6A3DE0] transition"
-              >
-                Search
-              </button>
-            </div>
-          </div>
 
           {/* Call-to-action for logged-out users */}
           {!isAuthenticated && (
-            <div className="mt-8">
+            <div className="mt-10">
               <button
                 onClick={handleGetStarted}
                 className="bg-white text-purple-600 px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
                 Get Started Free
               </button>
-              <p className="mt-3 text-sm opacity-80">
+              <p className="mt-4 text-sm opacity-80">
                 Join hundreds of students collaborating on SkillConnect
               </p>
             </div>

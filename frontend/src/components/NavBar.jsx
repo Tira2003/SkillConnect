@@ -3,6 +3,7 @@ import { FaUserCircle, FaBars, FaTimes } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 import { useModal } from "../ModalContext.jsx";
+import { useFeatureDialog } from "../FeatureDialogContext.jsx";
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
@@ -12,6 +13,7 @@ export default function NavBar() {
   const ticking = useRef(false);
   const { isAuthenticated, user, logout } = useAuth();
   const { openAuthModal } = useModal();
+  const { openFeatureDialog } = useFeatureDialog();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,11 +39,32 @@ export default function NavBar() {
   }, []);
 
   const links = [
-    { label: "Home", to: "/" },
-    { label: "Skill Search", to: "/skill-search" },
-    { label: "Skill Request", to: "/skill-request" },
-    { label: "Community", to: "/community" },
+    { label: "Home", to: "/", dashboardTo: "/dashboard", requiresAuth: false },
+    { label: "Skill Search", to: "/skill-search", requiresAuth: true },
+    { label: "Skill Request", to: "/skill-request", requiresAuth: true },
+    { label: "Community", to: "/community", requiresAuth: true },
   ];
+
+  const handleLinkClick = (link, e) => {
+    if (link.requiresAuth && !isAuthenticated) {
+      e.preventDefault();
+      openFeatureDialog(link.label);
+    } else if (link.label === "Home") {
+      e.preventDefault();
+      navigate(isAuthenticated ? link.dashboardTo : link.to);
+    }
+  };
+
+  const handleMobileLinkClick = (link) => {
+    setOpen(false);
+    if (link.requiresAuth && !isAuthenticated) {
+      openFeatureDialog(link.label);
+    } else if (link.label === "Home") {
+      navigate(isAuthenticated ? link.dashboardTo : link.to);
+    } else {
+      navigate(link.to);
+    }
+  };
 
   return (
     <nav
@@ -61,8 +84,12 @@ export default function NavBar() {
       }
     >
       {/* Left: Brand */}
-      <Link to="/" className="text-white font-semibold text-xl tracking-wide" style={{ color: '#fff' }}>
-        SkillLink
+      <Link 
+        to={isAuthenticated ? "/dashboard" : "/"} 
+        className="text-white font-semibold text-xl tracking-wide" 
+        style={{ color: '#fff' }}
+      >
+        SkillConnect
       </Link>
 
       {/* Middle: Nav Links (desktop) */}
@@ -71,6 +98,7 @@ export default function NavBar() {
           <Link
             key={l.label}
             to={l.to}
+            onClick={(e) => handleLinkClick(l, e)}
             className="text-white hover:text-[#A589FD] transition"
             style={{ color: '#fff' }}
           >
@@ -144,7 +172,7 @@ export default function NavBar() {
           {links.map((l) => (
             <button
               key={l.label}
-              onClick={() => { navigate(l.to); setOpen(false); }}
+              onClick={() => handleMobileLinkClick(l)}
               className="text-left w-full px-3 py-2 rounded-lg text-white hover:bg-white/5 transition"
               aria-label={`Go to ${l.label}`}
               style={{ color: '#fff' }}

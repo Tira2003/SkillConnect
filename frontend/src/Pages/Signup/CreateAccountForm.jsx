@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../AuthContext.jsx";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 
 export default function CreateAccountForm() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -78,14 +80,23 @@ export default function CreateAccountForm() {
           colors: ["#7D4DF4", "#A589FD", "#C4B5FD", "#E0D4FF"],
         });
 
-        setTimeout(() => {
-          setFormData({
-            firstName: "", lastName: "", email: "", username: "",
-            role: "employee", department: "", password: "", confirmPassword: ""
+        // Auto-login immediately after account creation
+        try {
+          const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+          const loginRes = await fetch(`${apiBase}/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: formData.email, password: formData.password }),
           });
-          setShowSuccess(false);
-          navigate("/");
-        }, 3000);
+          const loginData = await loginRes.json();
+          if (loginRes.ok && loginData.success && loginData.token && loginData.user) {
+            login(loginData.token, loginData.user);
+            // Navigate to dashboard to trigger global onboarding gate
+            navigate("/dashboard");
+          }
+        } catch (e) {
+          // If auto-login fails, keep success and let user login manually
+        }
       } else {
         setErrors({ general: result.message || "Failed to create account" });
       }

@@ -1,4 +1,5 @@
 const Conversation = require("../models/Conversation");
+const Message = require("../models/Message");
 const mongoose = require("mongoose");
 
 exports.createOrGetConversation = async (req, res) => {
@@ -43,11 +44,47 @@ exports.getConversationsForUser = async (req, res) => {
     }
     const conversations = await Conversation.find({ participants: userId })
       .populate("participants", "firstName lastName email")
-      .sort({ lastMessageTime: -1 });
+      .sort({ lastMessageTime: -1 })
+      .lean();
 
-    return res.json({ success: true, conversations });
+    // Enrich with last message preview if missing
+    const convIds = conversations.map((c) => c._id);
+    const lastMsgs = await Message.aggregate([
+      { $match: { conversationId: { $in: convIds } } },
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: "$conversationId", text: { $first: "$text" }, createdAt: { $first: "$createdAt" } } },
+    ]);
+    const lastMap = new Map(lastMsgs.map((m) => [String(m._id), m]));
+    const enriched = conversations.map((c) => {
+      const lm = lastMap.get(String(c._id));
+      return lm ? { ...c, lastMessage: lm.text, lastMessageTime: lm.createdAt } : c;
+    });
+
+    return res.json({ success: true, conversations: enriched });
   } catch (error) {
     console.error("Get Conversations Error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.deleteConversation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid conversation id" });
+    }
+
+    const conv = await Conversation.findById(id);
+    if (!conv) {
+      return res.status(404).json({ success: false, message: "Conversation not found" });
+    }
+
+    await Message.deleteMany({ conversationId: id });
+    await Conversation.findByIdAndDelete(id);
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("Delete Conversation Error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };

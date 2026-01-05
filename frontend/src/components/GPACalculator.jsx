@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { useModal } from '../ModalContext';
 
@@ -9,6 +9,7 @@ export default function GPACalculator() {
     { id: 1, name: '', credits: '', grade: '' }
   ]);
   const [gpa, setGpa] = useState(null);
+  const [currentGpa, setCurrentGpa] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const gradePoints = {
@@ -51,7 +52,14 @@ export default function GPACalculator() {
     }
 
     if (totalCredits > 0) {
-      setGpa((totalPoints / totalCredits).toFixed(2));
+      const calculated = (totalPoints / totalCredits).toFixed(2);
+      setGpa(calculated);
+      // persist locally to show "current GPA" next visits
+      try {
+        localStorage.setItem('skillconnect_current_gpa', calculated);
+        localStorage.setItem('skillconnect_gpa_last_calculated', new Date().toISOString());
+        setCurrentGpa(calculated);
+      } catch {}
     } else {
       setGpa(null);
     }
@@ -98,6 +106,16 @@ export default function GPACalculator() {
     }
   };
 
+  // Load previously calculated GPA, if any
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('skillconnect_current_gpa');
+      if (stored) {
+        setCurrentGpa(stored);
+      }
+    } catch {}
+  }, []);
+
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
@@ -109,6 +127,14 @@ export default function GPACalculator() {
           Reset
         </button>
       </div>
+
+      {currentGpa && isAuthenticated && (
+        <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <p className="text-sm text-gray-700">
+            Your current GPA is <span className="font-semibold text-purple-700">{currentGpa}</span>
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4">
         {courses.map((course, index) => (
@@ -185,13 +211,27 @@ export default function GPACalculator() {
             </div>
           </div>
 
-          <button
-            onClick={saveGPA}
-            disabled={saving}
-            className="mt-4 w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? 'Saving...' : isAuthenticated ? 'Save GPA to Profile' : 'Login to Save GPA'}
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={saveGPA}
+              disabled={saving}
+              className="mt-4 w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? 'Saving...' : 'Save GPA to Profile'}
+            </button>
+          ) : (
+            <div className="mt-6 p-6">
+              <p className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                Want to see the leaderboard?
+              </p>
+              <button
+                onClick={saveGPA}
+                className="w-full sm:w-auto mx-auto block px-8 py-3 bg-green-600 text-white text-base rounded-lg font-semibold hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
+              >
+                Login to Save GPA
+              </button>
+            </div>
+          )}
         </>
       )}
 

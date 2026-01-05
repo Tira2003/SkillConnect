@@ -3,14 +3,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logoImage from "../../assets/skilllogo.png";
 import { useAuth } from "../../AuthContext.jsx";
+import SkillsOnboardingModal from "../../components/SkillsOnboardingModal.jsx";
 
 function LoginPageV2() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [loggedInUser, setLoggedInUser] = useState(null);
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, updateUser } = useAuth();
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -29,12 +32,17 @@ function LoginPageV2() {
             const data = await res.json();
 
             if (res.ok && data.success && data.token && data.user) {
-                // persist auth and redirect
+                // persist auth
                 login(data.token, data.user);
-                setTimeout(() => {
-                    setIsLoading(false);
-                navigate("/");
-                }, 500);
+                setLoggedInUser(data.user);
+                setIsLoading(false);
+                
+                // Show onboarding if user has no skills
+                if (!data.user.skills || data.user.skills.length === 0) {
+                    setShowOnboarding(true);
+                } else {
+                    navigate("/dashboard");
+                }
             } else {
                 setIsLoading(false);
                 alert(data.message || "Invalid credentials");
@@ -46,9 +54,28 @@ function LoginPageV2() {
         }
     };
 
+    const handleOnboardingComplete = () => {
+        navigate("/dashboard");
+    };
+
+    const handleSkillsUpdate = (updatedUser) => {
+        updateUser({ skills: updatedUser.skills });
+    };
+
 
     return (
         <>
+            {/* Skills Onboarding Modal */}
+            {showOnboarding && loggedInUser && (
+                <SkillsOnboardingModal
+                    isOpen={showOnboarding}
+                    onClose={() => setShowOnboarding(false)}
+                    onComplete={handleOnboardingComplete}
+                    userId={loggedInUser.id || loggedInUser._id}
+                    onSkillsUpdate={handleSkillsUpdate}
+                />
+            )}
+
             {/* Animated Gradient Background */}
             <div className="min-h-screen relative overflow-hidden bg-black flex items-center justify-center px-4">
                 <div className="absolute inset-0 bg-linear-to-br from-[#7D4DF4]/20 via-black to-[#A589FD]/20" />
@@ -128,6 +155,9 @@ function LoginPageV2() {
                             >
                                 <input
                                     type="email"
+                                    id="email"
+                                    name="email"
+                                    autoComplete="email"
                                     placeholder="Email address"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -144,6 +174,9 @@ function LoginPageV2() {
                                 <div className="relative">
                                     <input
                                         type={showPassword ? "text" : "password"}
+                                        id="password"
+                                        name="password"
+                                        autoComplete="current-password"
                                         placeholder="Password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}

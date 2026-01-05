@@ -15,6 +15,7 @@ export const ChatProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  const [lastSeen, setLastSeen] = useState({}); // { conversationId: isoString }
 
   // Initialize socket and get current user from localStorage
   useEffect(() => {
@@ -23,6 +24,11 @@ export const ChatProvider = ({ children }) => {
     if (storedUser) {
       const user = JSON.parse(storedUser);
       setCurrentUser(user);
+      // load last seen map
+      const ls = localStorage.getItem(`chat:lastSeen:${user.id}`);
+      if (ls) {
+        try { setLastSeen(JSON.parse(ls)); } catch {}
+      }
     }
 
     // Initialize socket connection
@@ -69,11 +75,16 @@ export const ChatProvider = ({ children }) => {
         
         // Update chat list with last message
         setChats((prevChats) =>
-          prevChats.map((chat) =>
-            chat._id === newMessage.conversationId
-              ? { ...chat, lastMessage: newMessage.text, lastMessageTime: newMessage.createdAt }
-              : chat
-          )
+          prevChats.map((chat) => {
+            if (chat._id === newMessage.conversationId) {
+              const lastTimeIso = new Date(newMessage.createdAt).toISOString();
+              const seenTime = lastSeen[newMessage.conversationId];
+              const isViewing = selectedChat?._id === newMessage.conversationId;
+              const unread = isViewing ? 0 : (lastTimeIso && (!seenTime || new Date(lastTimeIso) > new Date(seenTime)) ? 1 : 0);
+              return { ...chat, lastMessage: newMessage.text, lastMessageTime: newMessage.createdAt, unread };
+            }
+            return chat;
+          })
         );
       });
 
@@ -110,6 +121,9 @@ export const ChatProvider = ({ children }) => {
           const otherParticipant = conv.participants.find(
             (p) => p._id !== currentUser.id
           );
+          const lastTime = conv.lastMessageTime ? new Date(conv.lastMessageTime).toISOString() : null;
+          const seenTime = lastSeen[conv._id];
+          const unread = lastTime && (!seenTime || new Date(lastTime) > new Date(seenTime)) ? 1 : 0;
           return {
             ...conv,
             name: otherParticipant 
@@ -118,7 +132,7 @@ export const ChatProvider = ({ children }) => {
             otherUser: otherParticipant,
             message: conv.lastMessage || 'No messages yet',
             time: formatTime(conv.lastMessageTime),
-            unread: 0,
+            unread,
             color: getRandomColor(),
           };
         });
@@ -146,9 +160,42 @@ export const ChatProvider = ({ children }) => {
           senderId: msg.senderId._id,
         }));
         setMessages(formattedMessages);
+        // mark seen for this conversation
+        const nowIso = new Date().toISOString();
+        setLastSeen((prev) => {
+          const next = { ...prev, [conversationId]: nowIso };
+          if (currentUser?.id) localStorage.setItem(`chat:lastSeen:${currentUser.id}`, JSON.stringify(next));
+          return next;
+        });
+        // reset unread locally
+        setChats((prev) => prev.map((c) => c._id === conversationId ? { ...c, unread: 0 } : c));
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
+    }
+  };
+
+  const markAllSeen = () => {
+    const nowIso = new Date().toISOString();
+    setLastSeen((prev) => {
+      const next = { ...prev };
+      chats.forEach((c) => { next[c._id] = nowIso; });
+      if (currentUser?.id) localStorage.setItem(`chat:lastSeen:${currentUser.id}`, JSON.stringify(next));
+      return next;
+    });
+    setChats((prev) => prev.map((c) => ({ ...c, unread: 0 })));
+  };
+
+  const deleteConversation = async (conversationId) => {
+    try {
+      const res = await fetch(`${API_URL}/conversations/${conversationId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setChats((prev) => prev.filter((c) => c._id !== conversationId));
+        if (selectedChat?._id === conversationId) setSelectedChat(null);
+      }
+    } catch (e) {
+      console.error('Delete conversation error', e);
     }
   };
 
@@ -251,6 +298,8 @@ export const ChatProvider = ({ children }) => {
     onSendMessage: handleSendMessage,
     startConversation,
     refreshConversations: fetchConversations,
+    markAllSeen,
+    deleteConversation,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

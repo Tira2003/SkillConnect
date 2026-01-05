@@ -3,55 +3,37 @@ import { useParams, useNavigate } from "react-router-dom"
 import NavBar from "../../components/NavBar";
 
 import {
-  Home,
-  MessageCircle,
-  Bell,
-  User,
-  Search,
-  Github,
-  Linkedin,
-  Globe,
   Star,
   FlaskConical,
-  MoreHorizontal,
-  X,
+  MessageCircle,
   ThumbsUp,
-  Share2,
-  Send,
-  ChevronLeft,
-  CheckCircle,
-  UserPlus,
-  Mail
+  Eye,
 } from "lucide-react"
 
 export default function ProfileViewerView() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   
   // --- State ---
   const [userData, setUserData] = useState(null);
+  const [discussions, setDiscussions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isConnected, setIsConnected] = useState(false)
-
-  const [feedbackItems, setFeedbackItems] = useState([
-    { id: 1, name: "Sarah J.", rating: 5, comment: "An absolute pleasure to work with!" },
-    { id: 2, name: "Mike T.", rating: 4, comment: "Great technical skills and communication." },
-    { id: 3, name: "Jessica R.", rating: 4, comment: "Delivered the project on time." },
-  ])
-
-  // State for the NEW feedback being written by the viewer
-  const [newFeedback, setNewFeedback] = useState({ rating: 0, comment: "" })
-  const [hoverRating, setHoverRating] = useState(0)
+  const [discussionsLoading, setDiscussionsLoading] = useState(true);
 
   useEffect(() => {
     if (userId) {
       fetchUserData();
+      fetchUserDiscussions();
     }
   }, [userId]);
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/profile/${userId}`);
+      const response = await fetch(`${apiBase}/profile/${userId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -66,22 +48,20 @@ export default function ProfileViewerView() {
     }
   };
 
-  const handleMessage = () => {
-    navigate(`/chat?userId=${userId}`);
-  };
-
-  const handleFeedbackSubmit = () => {
-    if (newFeedback.rating > 0 && newFeedback.comment.trim()) {
-      const feedback = {
-        id: feedbackItems.length + 1,
-        name: "You", // In a real app, this would be the viewer's name
-        rating: newFeedback.rating,
-        comment: newFeedback.comment,
+  const fetchUserDiscussions = async () => {
+    try {
+      const response = await fetch(`${apiBase}/discussions?authorId=${userId}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setDiscussions(data.discussions);
       }
-      setFeedbackItems([feedback, ...feedbackItems])
-      setNewFeedback({ rating: 0, comment: "" })
+    } catch (error) {
+      console.error("Error fetching user discussions:", error);
+    } finally {
+      setDiscussionsLoading(false);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -116,253 +96,117 @@ export default function ProfileViewerView() {
 
         <NavBar />
 
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pt-28">
 
-        <main className="max-w-7xl mx-auto px-0 sm:px-4 py-6 pt-28">
+          {/* ================= PROFILE CARD ================= */}
+          <div className="bg-white rounded-2xl shadow-lg border border-purple-200 overflow-hidden mb-6">
+            {/* Cover Image */}
+            <div className="h-40 sm:h-48 bg-gradient-to-r from-slate-500 to-slate-700 relative overflow-hidden">
+              {coverImage && (
+                <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
+              )}
+            </div>
 
-          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="px-4 sm:px-8 pb-8 relative">
+              {/* Avatar */}
+              <div className="-mt-16 mb-4 inline-block relative z-10">
+                <div className="w-32 h-32 rounded-full border-4 border-white bg-white overflow-hidden shadow-md">
+                  {profileImage ? (
+                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#6C38FF] to-[#EC38F5] flex items-center justify-center text-white text-3xl font-bold">
+                      {userData.firstName?.[0]}{userData.lastName?.[0]}
+                    </div>
+                  )}
+                </div>
+              </div>
 
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Left: Info */}
+                <div className="flex-1">
+                  <div className="mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
+                      <h1 className="text-2xl font-bold text-gray-900">
+                        {userData.firstName} {userData.lastName} {userData.pronouns && <span className="text-gray-500 text-lg font-normal">({userData.pronouns})</span>}
+                      </h1>
+                      <span className="w-fit flex items-center gap-1 text-purple-700 bg-purple-50 border border-purple-200 text-xs px-2 py-0.5 rounded-full font-medium">
+                        <Star className="w-3 h-4 text-yellow-500 fill-yellow-500" />{avgRating}
+                      </span>
+                    </div>
+                    {userData.headline && (
+                      <p className="text-base text-gray-900 font-medium mb-1">{userData.headline}</p>
+                    )}
+                    {userData.university && (
+                      <p className="text-sm text-gray-500 font-medium">{userData.university}</p>
+                    )}
+                  </div>
 
-          {/* ================= LEFT COLUMN ================= */}
-            <div className="flex-1 min-w-0">
-              {/* --- Profile Card --- */}
-              <div className="bg-white sm:rounded-2xl shadow-xl border border-purple-100 overflow-hidden mb-4 relative">
-                {/* Cover Image */}
-                <div className="h-40 sm:h-48 bg-gradient-to-r from-slate-500 to-slate-700 relative overflow-hidden">
-                  {coverImage && (
-                    <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
+                  {/* About Section */}
+                  {userData.about && (
+                    <div className="mb-6 p-4 rounded-lg bg-gradient-to-br from-purple-50 to-white border border-purple-200">
+                      <h3 className="text-sm font-semibold mb-2 text-gray-900">About</h3>
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        {userData.about}
+                      </p>
+                    </div>
                   )}
                 </div>
 
-                <div className="px-4 sm:px-8 pb-8 relative">
-                  {/* Avatar */}
-                  <div className="-mt-16 mb-4 inline-block relative z-10">
-                    <div className="w-32 h-32 rounded-full border-4 border-white bg-white overflow-hidden shadow-md">
-                      {profileImage ? (
-                        <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-[#6C38FF] to-[#EC38F5] flex items-center justify-center text-white text-3xl font-bold">
-                          {userData.firstName?.[0]}{userData.lastName?.[0]}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Left: Info */}
-                    <div className="flex-1">
-                      <div className="mb-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
-                          <h1 className="text-2xl font-bold text-gray-900">
-                            {userData.firstName} {userData.lastName} {userData.pronouns && <span className="text-gray-500 text-lg font-normal">({userData.pronouns})</span>}
-                          </h1>
-                          <span className="w-fit flex items-center gap-1 text-blue-700 bg-blue-50 border border-blue-200 text-[12px] px-2 py-0.5 rounded font-medium">
-                            <Star className="w-3 h-4 text-yellow-500 fill-yellow-500" />{avgRating}
-                          </span>
-                        </div>
-                        {userData.headline && (
-                          <p className="text-base text-gray-900 font-medium mb-1">{userData.headline}</p>
-                        )}
-                        {userData.university && (
-                          <p className="text-sm text-gray-500 font-medium">{userData.university}</p>
-                        )}
-                        {userData.gpa && (
-                          <p className="text-sm text-gray-500 mt-1">GPA: {userData.gpa}</p>
-                        )}
-                      </div>
-
-                      {/* About Section */}
-                      {userData.about && (
-                        <div className="mb-6 p-4 rounded-lg bg-[#E2D0F8] border border-[#A589FD]">
-                          <h3 className="text-sm font-semibold mb-2 text-gray-900">About</h3>
-                          <p className="text-sm text-gray-600 leading-relaxed">
-                            {userData.about}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Action Buttons (Viewer Perspective) */}
-                      <div className="flex gap-3 mb-4">
-                        <button
-                            onClick={() => setIsConnected(!isConnected)}
-                            className={`flex-1 flex  bg-gradient-to-r from-[#7D4DF4] to-[#00F0FF] items-center justify-center gap-2 py-2 rounded-full font-semibold text-sm transition-colors ${
-                                isConnected
-                                    ? "bg-white border border-gray-400 text-white hover:bg-gray-50"
-                                    : " text-white font-semibold bg-linear-to-r from-[#7D4DF4] to-[#A589FD] shadow-md shadow-[#7D4DF4]/40 hover:opacity-90 transition"
-                            }`}
-
-
-                        >
-                          {isConnected ? (
-                              <>Poked</>
-                          ) : (
-                              <><UserPlus className="w-4 h-4" /> poke for help</>
-                          )}
-                        </button>
-
-                        <button className="flex-1 flex items-center justify-center gap-2 border border-blue-600 text-blue-600 py-2 rounded-full hover:bg-blue-50 font-semibold text-sm transition-colors" onClick={handleMessage}>
-                          <Mail className="w-4 h-4" /> Message
-                        </button>
-
-                        <button className="px-3 border border-gray-400 rounded-full hover:bg-gray-50 text-gray-600">
-                          <MoreHorizontal className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Right: Skills Box */}
-                    <div className="lg:w-64 flex-shrink-0">
-                      <div className="bg-white border rounded-lg p-4 shadow-sm h-full bg-[#A589FD] border-[#A589FD]">
-                        <h3 className="font-bold text-sm mb-4">Top Skills</h3>
-                        <div className="space-y-4">
-                          {userData.skills && userData.skills.length > 0 ? (
-                            userData.skills.slice(0, 3).map((skill, idx) => (
-                              <SkillItem
-                                key={idx}
-                                icon={<FlaskConical className="w-4 h-4" />}
-                                title={skill.title}
-                                sub={skill.sub ? `(${skill.sub})` : ""}
-                                stars={skill.rating || 0}
-                              />
-                            ))
-                          ) : (
-                            <p className="text-sm text-gray-600">No skills listed</p>
-                          )}
-                        </div>
-                        {userData.skills && userData.skills.length > 3 && (
-                          <button className="w-full mt-4 py-2 text-xs font-semibold text-gray-500 border-t hover:bg-gray-50 transition-colors">
-                            Show all skills
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* --- Posts Feed --- */}
-              <div className="space-y-4">
-                <PostCard
-                    name="Alex Anderson"
-                    time="3d ago"
-                    content="Just finished a great workshop on UX Accessibility. It's amazing how small changes can make such a big difference for users."
-                    hasImage={true}
-                />
-                <PostCard
-                    name="Alex Anderson"
-                    time="5d ago"
-                    content="Looking for recommendations for advanced React patterns. Drop your favorite resources below! 👇"
-                    hasImage={false}
-                />
-              </div>
-            </div>
-
-            {/* ================= RIGHT COLUMN ================= */}
-            <div className="w-full lg:w-80 space-y-4">
-
-              {/* --- Portfolio Links --- */}
-              <div className="bg-[#FFFFFF] rounded-xl shadow-[0_0_20px_#A589FD] p-4">
-                <h3 className="font-bold text-gray-900 mb-4 text-sm">Portfolio Links</h3>
-                {userData.portfolioLinks && userData.portfolioLinks.length > 0 ? (
-                  <div className="space-y-3">
-                    {userData.portfolioLinks.map((link, idx) => (
-                      <PortfolioLink 
-                        key={idx}
-                        icon={<Globe className="w-5 h-5" />} 
-                        title={link.title} 
-                        url={link.url} 
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">No portfolio links</p>
-                )}
-              </div>
-
-              {/* --- Feedback Section (Interactive) --- */}
-              <div className="bg-white rounded-xl shadow-[0_0_20px_#A589FD] border border-gray-300 p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm">Feedback</h3>
-                    <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 font-medium">{feedbackItems.length} Reviews</span>
-                  </div>
-                  <div className="flex gap-0.5">
-                    <span className="text-xs bg-[#E3F9C2] text-black px-2 py-1 rounded-full font-medium">{avgRating} Avg</span>
-                  </div>
-                </div>
-
-                {/* Add Feedback Input */}
-                <div className="bg-blue-50/50 rounded-lg p-3 border border-blue-100 shadow-[0_0_10px_#A589FD] mb-4">
-                  <p className="text-xs font-semibold mb-2 text-gray-700">Leave a review for {userData.firstName}</p>
-                  <div className="flex gap-1 mb-3">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                        <button
-                            key={i}
-                            onMouseEnter={() => setHoverRating(i)}
-                            onMouseLeave={() => setHoverRating(0)}
-                            onClick={() => setNewFeedback({ ...newFeedback, rating: i })}
-                            className="p-0.5 focus:outline-none transition-transform hover:scale-110"
-                        >
-                          <Star
-                              className={`w-5 h-5 transition-colors ${
-                                  i <= (hoverRating || newFeedback.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                              }`}
+                {/* Right: Skills */}
+                <div className="lg:w-80 flex-shrink-0">
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-base mb-4 text-gray-900">Skills</h3>
+                    <div className="space-y-3">
+                      {userData.skills && userData.skills.length > 0 ? (
+                        userData.skills.slice(0, 5).map((skill, idx) => (
+                          <SkillItem
+                            key={idx}
+                            icon={<FlaskConical className="w-4 h-4" />}
+                            title={skill.title}
+                            sub={skill.sub ? `(${skill.sub})` : ""}
+                            stars={skill.rating || 0}
                           />
-                        </button>
-                    ))}
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-600">No skills listed</p>
+                      )}
+                    </div>
+                    {userData.skills && userData.skills.length > 5 && (
+                      <button className="w-full mt-4 py-2 text-xs font-semibold text-[#7D4DF4] border-t border-purple-200 hover:bg-purple-100 transition-colors">
+                        Show all {userData.skills.length} skills
+                      </button>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <input
-                        type="text"
-                        placeholder="Write a comment..."
-                        value={newFeedback.comment}
-                        onChange={(e) => setNewFeedback({ ...newFeedback, comment: e.target.value })}
-                        className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
-                    <button
-                        onClick={handleFeedbackSubmit}
-                        disabled={newFeedback.rating === 0 || !newFeedback.comment.trim()}
-                        className="p-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-md transition-colors shadow-sm"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Feedback List */}
-                <div className=" space-y-4 max-h-60 overflow-y-auto custom-scrollbar pr-1">
-                  {feedbackItems.map((item) => (
-                      <div key={item.id} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-xs font-bold text-gray-800">{item.name}</span>
-                          <div className="flex gap-0.5">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <Star
-                                    key={i}
-                                    className={`w-2.5 h-2.5 ${
-                                        i <= item.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200"
-                                    }`}
-                                />
-                            ))}
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-600 italic">"{item.comment}"</p>
-                      </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* --- Similar Profiles --- */}
-              <div className="bg-[#FFFFFF] rounded-xl shadow-[0_0_20px_#A589FD] p-4">
-                <h3 className="font-bold text-sm mb-4 text-black">People with similar skills</h3>
-                <div className="space-y-4">
-                  {/* These are read-only views with Average ratings */}
-                  <SimilarProfile name="Alex Johnson" role="Senior Product Designer" avgRating={4.8} />
-                  <SimilarProfile name="Jamie Smith" role="UX Research Lead" avgRating={4.5} />
-                  <SimilarProfile name="Chris Brown" role="Head of Product Mgmt" avgRating={4.9} />
-                  <SimilarProfile name="Dana Lee" role="Chief Usability Officer" avgRating={4.2} />
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* ================= COMMUNITY DISCUSSIONS ================= */}
+          <div className="bg-white rounded-2xl shadow-lg border border-purple-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Community Discussions</h2>
+            
+            {discussionsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse border border-purple-100 rounded-xl p-4">
+                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                ))}
+              </div>
+            ) : discussions.length > 0 ? (
+              <div className="space-y-4">
+                {discussions.map((discussion) => (
+                  <DiscussionCard key={discussion._id} discussion={discussion} navigate={navigate} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No discussions yet</p>
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -371,29 +215,20 @@ export default function ProfileViewerView() {
 
 // --- Helper Components ---
 
-function NavItem({ icon, label }) {
-  return (
-      <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-900 group">
-        <div className="group-hover:scale-110 transition-transform">{icon}</div>
-        <span className="text-[10px] sm:text-xs font-medium tracking-wide">{label}</span>
-      </button>
-  )
-}
-
 function SkillItem({ icon, title, sub, stars }) {
   return (
       <div className="flex items-center justify-between group cursor-default">
         <div className="flex items-start gap-3">
-          <div className="p-1.5 bg-gray-100 rounded text-gray-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">{icon}</div>
+          <div className="p-1.5 bg-purple-100 rounded text-[#7D4DF4] transition-colors">{icon}</div>
           <div>
             <p className="text-sm font-bold leading-tight text-gray-800">{title}</p>
-            <p className="text-[11px] text-gray-500">{sub}</p>
+            {sub && <p className="text-xs text-gray-500">{sub}</p>}
           </div>
         </div>
         <div className="flex gap-0.5">
           {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="p-0.5 rounded-sm">
-                <Star className={`w-3 h-3 ${i <= stars ? "fill-gray-700 text-gray-700" : "text-gray-200"}`} />
+                <Star className={`w-3 h-3 ${i <= stars ? "fill-yellow-500 text-yellow-500" : "text-gray-200"}`} />
               </div>
           ))}
         </div>
@@ -401,79 +236,57 @@ function SkillItem({ icon, title, sub, stars }) {
   )
 }
 
-function PostCard({ name, time, content, hasImage }) {
-  return (
-      <div className="bg-white rounded-xl shadow-[0_0_20px_#A589FD] border border-gray-300 p-0 overflow-hidden">
-        <div className="p-4 pb-2">
-          <div className="flex justify-between items-start mb-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gray-800 overflow-hidden">
-                {/* Placeholder Avatar */}
-                <div className="w-full h-full bg-slate-300"></div>
-              </div>
-              <div>
-                <h4 className="font-bold text-sm text-gray-900 hover:text-blue-600 cursor-pointer">{name}</h4>
-                <p className="text-xs text-gray-500">{time}</p>
-              </div>
-            </div>
-            <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
-          </div>
-          <p className="text-sm text-gray-800 mb-2 whitespace-pre-line leading-relaxed">{content}</p>
-        </div>
+function DiscussionCard({ discussion, navigate }) {
+  const timeAgo = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
 
-        {hasImage && (
-            <div className="w-full h-64 bg-gray-200 mb-2"></div>
-        )}
-        <div className="px-4 py-2 border-t border-gray-100">
-          <div className="flex justify-between pt-1">
-            <button className="flex items-center gap-1.5 px-3 py-2 rounded text-gray-600 hover:bg-gray-100 font-medium text-sm transition-colors flex-1 justify-center">
-              <ThumbsUp className="w-4 h-4" /> <span className="hidden sm:inline">Like</span>
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-2 rounded text-gray-600 hover:bg-gray-100 font-medium text-sm transition-colors flex-1 justify-center">
-              <MessageCircle className="w-4 h-4" /> <span className="hidden sm:inline">Comment</span>
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-2 rounded text-gray-600 hover:bg-gray-100 font-medium text-sm transition-colors flex-1 justify-center">
-              <Share2 className="w-4 h-4" /> <span className="hidden sm:inline">Share</span>
-            </button>
-          </div>
-        </div>
-      </div>
-  )
-}
-
-function PortfolioLink({ icon, title, url }) {
   return (
-      <div className="flex items-center gap-4 p-3 border border-gray-200 rounded-lg hover:border-blue-400 hover:shadow-md cursor-pointer transition-all bg-gray-50">
-        <div className="text-gray-700 bg-white p-2 rounded shadow-sm">{icon}</div>
-        <div className="flex-1 overflow-hidden">
-          <p className="text-xs font-bold uppercase text-gray-800 tracking-wide">{title}</p>
-          <p className="text-xs text-blue-600 truncate">{url}</p>
-        </div>
-        <ChevronLeft className="w-4 h-4 text-gray-400 rotate-180" />
+    <div 
+      onClick={() => navigate('/community')}
+      className="border border-purple-100 rounded-xl p-4 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer bg-white"
+    >
+      <div className="flex items-start justify-between mb-2">
+        <h3 className="font-semibold text-base text-gray-900 flex-1">{discussion.title}</h3>
+        <span className="text-xs px-2 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 ml-2">
+          {discussion.category}
+        </span>
       </div>
-  )
-}
+      
+      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{discussion.content}</p>
+      
+      <div className="flex items-center gap-4 text-xs text-gray-500">
+        <div className="flex items-center gap-1">
+          <Eye className="w-4 h-4" />
+          <span>{discussion.views || 0}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <MessageCircle className="w-4 h-4" />
+          <span>{discussion.replies || 0}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <ThumbsUp className="w-4 h-4" />
+          <span>{discussion.likes || 0}</span>
+        </div>
+        <span className="ml-auto">{timeAgo(discussion.createdAt)}</span>
+      </div>
 
-function SimilarProfile({ name, role, avgRating }) {
-  return (
-      <div className="flex items-center gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-        <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0"></div>
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start">
-            <p className="text-sm font-semibold text-gray-900 truncate">{name}</p>
-            {/* Static Average Rating Display */}
-            <div className="flex items-center gap-1 bg-yellow-50 px-1.5 py-0.5 rounded border border-yellow-100">
-              <Star className="w-2.5 h-2.5 fill-orange-400 text-orange-400" />
-              <span className="text-[10px] font-bold text-orange-600">{avgRating}</span>
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 truncate">{role}</p>
-          <button className="mt-1 text-xs  bg-gradient-to-r text-white font-semibold bg-linear-to-r from-[#7D4DF4] to-[#A589FD] shadow-md shadow-[#7D4DF4]/40 hover:opacity-90 transition rounded-full px-3 py-1 hover:border-black hover:text-gray-700 transition-colors">
-            View Profile
-          </button>
+      {discussion.tags && discussion.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {discussion.tags.slice(0, 3).map((tag, idx) => (
+            <span key={idx} className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+              {tag}
+            </span>
+          ))}
         </div>
-      </div>
-  )
+      )}
+    </div>
+  );
 }

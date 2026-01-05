@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const {
   getSkillRequests,
+  getFeaturedSkillRequests,
   getMySkillRequests,
   getSkillRequestById,
   createSkillRequest,
@@ -12,6 +13,7 @@ const {
   acceptResponse,
 } = require("../controllers/skillRequestController");
 
+router.get("/skill-requests/featured", getFeaturedSkillRequests);
 router.get("/skill-requests", getSkillRequests);
 router.get("/skill-requests/my/:userId", getMySkillRequests);
 router.get("/skill-requests/:id", getSkillRequestById);

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import NavBar from "../../components/NavBar";
 import { useAuth } from "../../AuthContext";
 
@@ -14,6 +15,11 @@ export default function CommunityPage() {
   const [selectedTags, setSelectedTags] = useState([]);
   const [sortBy, setSortBy] = useState("recent");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Redirect to home if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   // new discussion form state
   const [form, setForm] = useState({

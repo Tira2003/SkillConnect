@@ -60,63 +60,61 @@ export default function PopularMembers() {
 
   if (loading) {
     return (
-      <div className="w-full bg-white rounded-3xl shadow-lg border border-purple-200 p-6 text-gray-900">
-        <h2 className="font-semibold text-lg text-gray-900 mb-4">Popular Members</h2>
+      <div className="w-full">
         <p className="text-gray-500 text-center">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-white rounded-3xl shadow-lg border border-purple-200 p-6 text-gray-900 hover:shadow-purple-300/40 transition">
+    <div className="w-full">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="font-semibold text-lg text-gray-900">Popular Members</h2>
         <button 
           onClick={() => navigate('/skill-search')}
-          className="text-sm px-3 py-1 rounded-lg border border-purple-300 text-purple-700 hover:bg-purple-50 transition"
+          className="text-sm px-3 py-1 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition ml-auto"
         >
-          View All
+          View All →
         </button>
       </div>
 
       {members.length === 0 ? (
         <p className="text-gray-500 text-center py-8">No members found</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {members.map((m) => (
             <div
               key={m._id}
-              className="flex items-center gap-4 p-4 rounded-2xl border border-purple-100 hover:border-purple-300 transition cursor-pointer"
+              className="flex items-center gap-3 p-3 rounded-xl border border-purple-100 hover:border-purple-300 hover:bg-purple-50/30 transition cursor-pointer"
               onClick={() => navigate(`/profile/${m._id}`)}
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#6C38FF] via-[#4C2AFF] to-[#EC38F5] text-white flex items-center justify-center text-xs font-bold shadow-lg">
+              <div className="w-12 h-12 rounded-xl bg-linear-to-br from-[#6C38FF] via-[#4C2AFF] to-[#EC38F5] text-white flex items-center justify-center text-xs font-bold shadow">
                 {m.firstName?.[0]}{m.lastName?.[0]}
               </div>
 
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-gray-900 truncate">
                     {m.firstName} {m.lastName}
                   </p>
                   {m.gpa && (
-                    <span className="text-xs px-2 py-0.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200">
-                      GPA: {m.gpa}
+                    <span className="text-xs px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
+                      {m.gpa}
                     </span>
                   )}
                 </div>
 
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 truncate">
                   {m.skills?.slice(0, 2).map(s => s.title).join(', ') || 'No skills listed'}
                 </p>
 
                 <div className="flex items-center text-xs text-gray-500 mt-1">
-                  👥 {m.endorsements || 0} endorsements
+                  👥 {m.endorsements || 0}
                 </div>
               </div>
 
               <button 
                 onClick={(e) => handleEndorse(m._id, e)}
-                className="px-3 py-1.5 text-sm rounded-xl bg-gradient-to-r from-[#7D4DF4] to-[#A589FD] text-white shadow hover:opacity-90 transition"
+                className="px-3 py-1.5 text-sm rounded-lg bg-linear-to-r from-[#7D4DF4] to-[#A589FD] text-white shadow hover:opacity-90 transition whitespace-nowrap"
               >
                 Endorse
               </button>

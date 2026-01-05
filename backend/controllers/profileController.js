@@ -10,12 +10,12 @@ exports.getProfile = async (req, res) => {
         const user = await User.findById(req.params.userId).select("-password");
 
         if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(404).json({ success: false, message: "User not found" });
         }
 
-        res.json(user);
+        res.json({ success: true, user });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 
@@ -24,27 +24,35 @@ exports.getProfile = async (req, res) => {
  */
 exports.updateProfile = async (req, res) => {
     try {
+        const allowed = [
+            "profileImage",
+            "coverImage",
+            "headline",
+            "pronouns",
+            "university",
+            "about",
+            "skills",
+            "portfolioLinks",
+        ];
+        const update = {};
+        for (const key of allowed) {
+            if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+                update[key] = req.body[key];
+            }
+        }
+
         const updatedUser = await User.findByIdAndUpdate(
             req.params.userId,
-            {
-                profileImage: req.body.profileImage,
-                coverImage: req.body.coverImage,
-                headline: req.body.headline,
-                pronouns: req.body.pronouns,
-                university: req.body.university,
-                about: req.body.about,
-                skills: req.body.skills,
-                portfolioLinks: req.body.portfolioLinks,
-            },
+            { $set: update },
             { new: true }
         ).select("-password");
 
         if (!updatedUser) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(404).json({ success: false, message: "User not found" });
         }
 
-        res.json(updatedUser);
+        res.json({ success: true, user: updatedUser });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 };

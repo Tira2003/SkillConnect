@@ -5,9 +5,14 @@ const User = require("../models/User");
 // Get all discussions with filters
 exports.getDiscussions = async (req, res) => {
   try {
-    const { category, tags, search, sortBy = "recent", limit = 50 } = req.query;
+    const { category, tags, search, sortBy = "recent", limit = 50, authorId } = req.query;
 
     let query = {};
+
+    // Filter by author
+    if (authorId) {
+      query.author = authorId;
+    }
 
     // Filter by category
     if (category && category !== "All") {

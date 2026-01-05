@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import SearchBar from "./SearchBar";
 import Filters from "./Filters";
 import ProfileCard from "./ProfileCard";
 import NavBar from "../../../components/NavBar";
+import { useAuth } from "../../../AuthContext";
 
 export default function SkillSearch() {
+  const { user, isAuthenticated } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
@@ -16,9 +19,15 @@ export default function SkillSearch() {
     verifiedOnly: false,
   });
 
+  // Redirect to home if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
+      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const params = new URLSearchParams();
       
       if (filters.query) params.append("query", filters.query);
@@ -27,8 +36,9 @@ export default function SkillSearch() {
       if (filters.availability) params.append("availability", filters.availability);
       if (filters.minRating) params.append("minRating", filters.minRating);
       if (filters.verifiedOnly) params.append("verifiedOnly", "true");
+      if (user) params.append("userId", user.id || user.userId);
 
-      const response = await fetch(`http://localhost:5000/api/search/users?${params}`);
+      const response = await fetch(`${apiBase}/search/users?${params}`);
       const data = await response.json();
 
       if (data.success) {

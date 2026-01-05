@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useModal } from "../ModalContext.jsx";
 import { useAuth } from "../AuthContext.jsx";
 
 export default function AuthModal() {
   const { authModalOpen, authModalMode, closeAuthModal, openAuthModal } = useModal();
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,6 +41,8 @@ export default function AuthModal() {
       if (res.ok && data.success && data.token && data.user) {
         login(data.token, data.user);
         closeAuthModal();
+        // Redirect to dashboard after successful login
+        navigate("/dashboard");
       } else {
         setError(data.message || "Invalid credentials");
       }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import NavBar from "../../../components/NavBar";
 import CreateRequestButton from "./CreateRequestButton";
 import RequestCard from "./RequestCard";
@@ -18,6 +19,11 @@ export default function SkillRequests() {
   const [showMyRequests, setShowMyRequests] = useState(true);
   const [showOtherRequests, setShowOtherRequests] = useState(true);
 
+  // Redirect to home if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
   useEffect(() => {
     fetchRequests();
   }, [filters, user]);
@@ -25,10 +31,11 @@ export default function SkillRequests() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
+      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       // Fetch my requests
       if (isAuthenticated && user) {
         const myResponse = await fetch(
-          `http://localhost:5000/api/skill-requests/my/${user.id || user.userId}`
+          `${apiBase}/skill-requests/my/${user.id || user.userId}`
         );
         const myData = await myResponse.json();
         if (myData.success) {
@@ -43,7 +50,7 @@ export default function SkillRequests() {
       if (user) params.append("userId", user.id || user.userId);
 
       const othersResponse = await fetch(
-        `http://localhost:5000/api/skill-requests?${params}`
+        `${apiBase}/skill-requests?${params}`
       );
       const othersData = await othersResponse.json();
       if (othersData.success) {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { MoreVertical } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import { useChat } from '../ChatContext';
@@ -7,6 +8,13 @@ import Button2 from '../../../components/ui/button';
 
 const MessageWindow = () => {
   const { selectedChat: chat, messages } = useChat();
+  const navigate = useNavigate();
+
+  const handleViewProfile = () => {
+    if (chat?.otherUser?._id) {
+      navigate(`/profile/${chat.otherUser._id}`);
+    }
+  };
 
   if (!chat) {
     return (
@@ -35,7 +43,7 @@ const MessageWindow = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <Button2>
+          <Button2 onClick={handleViewProfile}>
             View Profile
           </Button2>
           <MoreVertical className="w-5 h-5 text-gray-400 cursor-pointer hover:text-purple-600 transition-colors" />

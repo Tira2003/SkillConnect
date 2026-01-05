@@ -17,6 +17,7 @@ exports.searchUsers = async (req, res) => {
       limit = 20,
       page = 1,
     } = req.query;
+    const requesterId = req.query.userId;
 
     // Build search filter
     const filter = {};
@@ -100,6 +101,26 @@ exports.searchUsers = async (req, res) => {
         responseTime,
       };
     });
+
+    // Personalized ranking by requester skills overlap
+    if (requesterId) {
+      try {
+        const requester = await User.findById(requesterId).select("skills");
+        const reqSkills = (requester?.skills || []).map((s) => (s.title || "").toLowerCase());
+        users = users
+          .map((u) => {
+            const uSkills = (u.skills || []).map((s) => (s.title || "").toLowerCase());
+            const overlap = uSkills.filter((t) => reqSkills.includes(t)).length;
+            return { ...u, _matchScore: overlap };
+          })
+          .sort((a, b) => {
+            if (b._matchScore !== a._matchScore) return b._matchScore - a._matchScore;
+            return parseFloat(b.averageRating) - parseFloat(a.averageRating);
+          });
+      } catch (e) {
+        // ignore personalization errors
+      }
+    }
 
     // Get total count for pagination
     const total = await User.countDocuments(filter);

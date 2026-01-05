@@ -52,49 +52,39 @@ export default function ActiveMembers() {
 
   if (loading) {
     return (
-      <div className="w-full bg-white rounded-3xl shadow-lg border border-purple-200 p-6 text-gray-900">
-        <h2 className="font-semibold text-lg mb-4 text-gray-900">Active Members Now</h2>
-        <p className="text-gray-500 text-center">Loading...</p>
+      <div className="w-full">
+        <p className="text-gray-500 text-center text-sm">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-white rounded-3xl shadow-lg border border-purple-200 p-6 text-gray-900 hover:shadow-purple-300/40 transition">
-      <h2 className="font-semibold text-lg mb-4 text-gray-900">Active Members Now</h2>
-
+    <div className="w-full">
       {activeMembers.length === 0 ? (
-        <p className="text-gray-500 text-center py-4">No active members</p>
+        <p className="text-gray-500 text-center py-4 text-sm">No active members</p>
       ) : (
         <div className="space-y-3">
           {activeMembers.map((m) => (
             <div
               key={m._id}
-              className="flex items-center justify-between p-4 rounded-2xl border border-purple-100 hover:border-purple-300 transition cursor-pointer"
+              className="flex items-start gap-3 p-3 rounded-xl border border-purple-100 hover:border-purple-300 hover:bg-purple-50/30 transition cursor-pointer"
               onClick={() => handleProfileClick(m._id)}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#6C38FF] via-[#4C2AFF] to-[#EC38F5] text-white flex items-center justify-center text-[10px] font-bold shadow">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-lg bg-linear-to-br from-[#6C38FF] via-[#4C2AFF] to-[#EC38F5] text-white flex items-center justify-center text-xs font-bold shadow">
                   {m.firstName?.[0]}{m.lastName?.[0]}
                 </div>
-
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {m.firstName} {m.lastName}
-                  </p>
-                  <div className="flex items-center text-xs text-gray-500 gap-2">
-                    <span className={`w-2 h-2 rounded-full ${m.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                    {getTimeAgo(m.lastActive)}
-                  </div>
-                </div>
+                <span className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${m.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
               </div>
 
-              <button 
-                onClick={(e) => handleMessage(m._id, e)}
-                className="px-3 py-1.5 text-sm rounded-xl bg-gradient-to-r from-[#7D4DF4] to-[#A589FD] text-white shadow hover:opacity-90 transition"
-              >
-                Message
-              </button>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 text-sm truncate">
+                  {m.firstName} {m.lastName}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {getTimeAgo(m.lastActive)}
+                </p>
+              </div>
             </div>
           ))}
         </div>

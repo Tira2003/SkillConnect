@@ -2,6 +2,56 @@
 const SkillRequest = require("../models/SkillRequest");
 const User = require("../models/User");
 
+// Get featured skill requests for home page
+exports.getFeaturedSkillRequests = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 6;
+
+    // Get featured requests based on:
+    // 1. High/Critical priority
+    // 2. Open status
+    // 3. Recent creation
+    // 4. Has responses (shows popularity)
+    const requests = await SkillRequest.find({
+      status: { $in: ["open", "in-progress"] },
+    })
+      .populate("author", "firstName lastName username profileImage")
+      .populate("assignedTo", "firstName lastName username")
+      .sort({
+        // Prioritize by priority level (Critical > High > Medium > Low)
+        priority: -1,
+        // Then by number of responses (popularity)
+        // Then by recent creation
+        createdAt: -1,
+      })
+      .limit(limit);
+
+    // Sort manually by priority weight and response count
+    const priorityWeight = {
+      Critical: 4,
+      High: 3,
+      Medium: 2,
+      Low: 1,
+    };
+
+    const sortedRequests = requests.sort((a, b) => {
+      const priorityDiff =
+        (priorityWeight[b.priority] || 0) - (priorityWeight[a.priority] || 0);
+      if (priorityDiff !== 0) return priorityDiff;
+
+      const responseDiff = b.responses.length - a.responses.length;
+      if (responseDiff !== 0) return responseDiff;
+
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    res.json({ success: true, requests: sortedRequests });
+  } catch (error) {
+    console.error("Get Featured Skill Requests Error:", error);
+    res.json({ success: false, message: "Server error" });
+  }
+};
+
 // Get all skill requests with filters
 exports.getSkillRequests = async (req, res) => {
   try {
@@ -32,10 +82,49 @@ exports.getSkillRequests = async (req, res) => {
       query.author = { $ne: userId };
     }
 
-    const requests = await SkillRequest.find(query)
+    let requests = await SkillRequest.find(query)
       .populate("author", "firstName lastName username profileImage")
       .populate("assignedTo", "firstName lastName username")
       .sort({ createdAt: -1 });
+
+    // Personalized ranking: if userId provided, rank by skill match
+    if (userId) {
+      try {
+        const user = await User.findById(userId).select("skills");
+        const userSkills = (user?.skills || []).map((s) => ({
+          title: (s.title || "").toLowerCase(),
+          sub: (s.sub || "").toLowerCase(),
+        }));
+
+        const titleTokens = (str) => (str || "")
+          .toLowerCase()
+          .split(/[^a-z0-9]+/)
+          .filter(Boolean);
+
+        requests = requests
+          .map((req) => {
+            const tags = (req.tags || []).map((t) => (t || "").toLowerCase());
+            const cat = (req.category || "").toLowerCase();
+            const titleWords = titleTokens(req.title);
+
+            let matchScore = 0;
+            for (const sk of userSkills) {
+              const titleMatch = titleWords.includes(sk.title) || titleWords.includes(sk.sub);
+              const tagMatch = tags.includes(sk.title) || tags.includes(sk.sub);
+              const catMatch = cat && (cat.includes(sk.title) || cat.includes(sk.sub));
+              matchScore += (titleMatch ? 2 : 0) + (tagMatch ? 2 : 0) + (catMatch ? 1 : 0);
+            }
+
+            // small boost for higher priority
+            const priorityBoost = { Low: 0, Medium: 1, High: 2, Critical: 3 }[req.priority] || 0;
+
+            return { ...req.toObject(), _matchScore: matchScore + priorityBoost };
+          })
+          .sort((a, b) => b._matchScore - a._matchScore);
+      } catch (e) {
+        // ignore personalization errors
+      }
+    }
 
     res.json({ success: true, requests });
   } catch (error) {
