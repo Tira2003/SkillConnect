@@ -21,6 +21,18 @@ const portfolioSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const moduleSchema = new mongoose.Schema(
+    {
+        name: { type: String, required: true },
+        credits: { type: Number, required: true },
+        grade: { type: String, required: true },
+        semester: { type: String, default: "" },
+        year: { type: Number, default: null },
+        completedAt: { type: Date, default: Date.now },
+    },
+    { _id: true }
+);
+
 /* ---------- MAIN USER SCHEMA ---------- */
 const UserSchema = new mongoose.Schema(
     {
@@ -47,6 +59,8 @@ const UserSchema = new mongoose.Schema(
         headline: { type: String, default: "" },
         pronouns: { type: String, default: "" },
         university: { type: String, default: "" },
+        course: { type: String, default: "" },
+        specialization: { type: String, default: "" },
         about: { type: String, default: "" },
 
         skills: { type: [skillSchema], default: [] },
@@ -54,6 +68,7 @@ const UserSchema = new mongoose.Schema(
 
         /* ===== GPA & ENDORSEMENTS ===== */
         gpa: { type: Number, default: null },
+        moduleHistory: { type: [moduleSchema], default: [] },
         endorsements: { type: Number, default: 0 },
         endorsedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 

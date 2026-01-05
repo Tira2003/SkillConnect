@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { MessageCircle } from "lucide-react";
+import ChatDialog from "../../../components/chat/ChatDialog";
+import { useChat } from "../../../Pages/Message/ChatContext";
 
 export default function ActiveMembers() {
   const [activeMembers, setActiveMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
   const navigate = useNavigate();
+  const { startConversation } = useChat();
 
   useEffect(() => {
     fetchActiveMembers();
@@ -41,9 +46,19 @@ export default function ActiveMembers() {
     return `${Math.floor(hours / 24)}d ago`;
   };
 
-  const handleMessage = (userId, e) => {
+  const handleMessage = async (userId, e) => {
     e.stopPropagation();
-    navigate(`/chat?userId=${userId}`);
+    try {
+      const conversation = await startConversation(userId);
+      if (conversation) {
+        // Wait a moment for messages to load
+        setTimeout(() => {
+          setChatOpen(true);
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+    }
   };
 
   const handleProfileClick = (userId) => {
@@ -85,10 +100,19 @@ export default function ActiveMembers() {
                   {getTimeAgo(m.lastActive)}
                 </p>
               </div>
+
+              <button
+                onClick={(e) => handleMessage(m._id, e)}
+                className="p-2 rounded-lg bg-purple-100 text-purple-600 hover:bg-purple-200 transition-colors"
+                title="Message"
+              >
+                <MessageCircle size={16} />
+              </button>
             </div>
           ))}
         </div>
       )}
+      {chatOpen && <ChatDialog onClose={() => setChatOpen(false)} />}
     </div>
   );
 }

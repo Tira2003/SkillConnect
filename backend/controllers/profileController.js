@@ -30,6 +30,8 @@ exports.updateProfile = async (req, res) => {
             "headline",
             "pronouns",
             "university",
+            "course",
+            "specialization",
             "about",
             "skills",
             "portfolioLinks",

@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext({
   isAuthenticated: false,
   user: null,
+  loading: true,
   login: () => {},
   logout: () => {},
   updateUser: () => {},
@@ -11,33 +13,56 @@ const AuthContext = createContext({
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Check authentication status on mount
   useEffect(() => {
-    try {
-      const token = localStorage.getItem("token");
-      const userJson = localStorage.getItem("user");
-      if (token && userJson) {
-        setIsAuthenticated(true);
-        setUser(JSON.parse(userJson));
+    const checkAuth = async () => {
+      try {
+        // Try to get user data from localStorage first (for user info)
+        const userJson = localStorage.getItem("user");
+        if (userJson) {
+          const userData = JSON.parse(userJson);
+          setIsAuthenticated(true);
+          setUser(userData);
+        }
+      } catch (e) {
+        console.error("Auth check error:", e);
+        setIsAuthenticated(false);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      // ignore corrupted storage
-      setIsAuthenticated(false);
-      setUser(null);
-    }
+    };
+
+    checkAuth();
   }, []);
 
-  const login = (token, userData) => {
-    localStorage.setItem("token", token);
+  const login = (userData) => {
+    // No longer store token (it's in httpOnly cookie)
+    // Only store user data for UI purposes
     localStorage.setItem("user", JSON.stringify(userData));
     localStorage.setItem("userId", userData.id || userData.userId);
     setIsAuthenticated(true);
     setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
+  const logout = async () => {
+    try {
+      // Call backend to clear cookie
+      await fetch("http://localhost:5000/api/logout", {
+        method: "POST",
+        credentials: "include", // Important: send cookies
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+
+    // Clear local storage
     localStorage.removeItem("user");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("skillconnect_current_gpa");
+    localStorage.removeItem("skillconnect_gpa_last_calculated");
     setIsAuthenticated(false);
     setUser(null);
   };
@@ -49,7 +74,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

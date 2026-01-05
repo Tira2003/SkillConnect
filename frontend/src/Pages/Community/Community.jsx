@@ -1,25 +1,21 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import NavBar from "../../components/NavBar";
 import { useAuth } from "../../AuthContext";
 
 export default function CommunityPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
   const tabs = ["Discussions", "Mentorship", "Events", "Groups"];
   const [activeTab, setActiveTab] = useState("Discussions");
   const [discussions, setDiscussions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   const [allTags, setAllTags] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedTags, setSelectedTags] = useState([]);
   const [sortBy, setSortBy] = useState("recent");
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Redirect to home if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
 
   // new discussion form state
   const [form, setForm] = useState({
@@ -35,8 +31,15 @@ export default function CommunityPage() {
     fetchPopularTags();
   }, [selectedCategory, selectedTags, sortBy]);
 
+  // Redirect to home if not authenticated or when user logs out
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, navigate, loading]);
+
   const fetchDiscussions = async () => {
-    setLoading(true);
+    setDataLoading(true);
     try {
       const params = new URLSearchParams();
       if (selectedCategory !== "All") params.append("category", selectedCategory);
@@ -52,7 +55,7 @@ export default function CommunityPage() {
     } catch (error) {
       console.error("Error fetching discussions:", error);
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
@@ -108,6 +111,46 @@ export default function CommunityPage() {
     setIsModalOpen(true);
   }
 
+  async function handleSubmitDiscussion() {
+    if (!form.title || !form.category || !form.content) {
+      alert("Please fill all required fields");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/discussions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...form,
+          authorId: user.id || user.userId
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIsModalOpen(false);
+        fetchDiscussions();
+      } else {
+        alert(data.message || "Failed to create discussion");
+      }
+    } catch (error) {
+      console.error("Error creating discussion:", error);
+      alert("Failed to create discussion");
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    );
+  }
+
   async function submitForm(e) {
     e.preventDefault();
     
@@ -120,9 +163,9 @@ export default function CommunityPage() {
       const response = await fetch("http://localhost:5000/api/discussions", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json"
         },
+        credentials: 'include',
         body: JSON.stringify({
           title: form.title,
           category: form.category || "General",

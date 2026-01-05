@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 exports.createAccount = async (req, res) => {
   try {
-    const { firstName, lastName, email, username, role, department, password } = req.body;
+    const { firstName, lastName, email, username, role, department, university, course, specialization, password } = req.body;
 
     const existingEmail = await User.findOne({ email });
     if (existingEmail) return res.json({ success: false, message: "Email already exists" });
@@ -25,6 +25,9 @@ exports.createAccount = async (req, res) => {
       username,
       role,
       department,
+      university: university || "",
+      course: course || "",
+      specialization: specialization || "",
       password: hashedPassword,
     });
 
@@ -54,13 +57,20 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, role: user.role },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1d" } // Changed to 1 day
     );
+
+    // Set cookie with 1 day expiration
+    res.cookie("token", token, {
+      httpOnly: true, // Prevents JavaScript access (XSS protection)
+      secure: process.env.NODE_ENV === "production", // HTTPS only in production
+      sameSite: "lax", // CSRF protection
+      maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
+    });
 
     res.json({
       success: true,
       message: "Login successful",
-      token,
       user: {
         id: user._id,
         userId: user._id,
@@ -71,6 +81,9 @@ exports.login = async (req, res) => {
         username: user.username,
         role: user.role,
         department: user.department,
+        university: user.university,
+        course: user.course,
+        specialization: user.specialization,
         skills: user.skills || [],
         profileImage: user.profileImage,
         about: user.about,
@@ -78,6 +91,20 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error("Login Error:", error);
+    res.json({ success: false, message: "Server error" });
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+    res.json({ success: true, message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout Error:", error);
     res.json({ success: false, message: "Server error" });
   }
 };

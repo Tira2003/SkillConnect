@@ -17,9 +17,48 @@ export default function CreateAccountForm() {
     username: "",
     role: "employee",
     department: "",
+    university: "",
+    course: "",
+    specialization: "",
     password: "",
     confirmPassword: "",
   });
+
+  // Sample recommendations for dropdowns
+  const universities = [
+    "BICT University",
+    "Tech Institute",
+    "National University",
+    "State University",
+    "Metropolitan College",
+    "Global University",
+    "Other"
+  ];
+
+  const courses = [
+    "Computer Science",
+    "Information Technology",
+    "Software Engineering",
+    "Data Science",
+    "Cyber Security",
+    "Business Administration",
+    "Engineering",
+    "Medicine",
+    "Other"
+  ];
+
+  const specializations = [
+    "Web Development",
+    "Mobile App Development",
+    "Machine Learning",
+    "Cloud Computing",
+    "Network Security",
+    "Database Management",
+    "UI/UX Design",
+    "DevOps",
+    "Blockchain",
+    "Other"
+  ];
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -86,11 +125,12 @@ export default function CreateAccountForm() {
           const loginRes = await fetch(`${apiBase}/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ email: formData.email, password: formData.password }),
           });
           const loginData = await loginRes.json();
-          if (loginRes.ok && loginData.success && loginData.token && loginData.user) {
-            login(loginData.token, loginData.user);
+          if (loginRes.ok && loginData.success && loginData.user) {
+            login(loginData.user);
             // Navigate to dashboard to trigger global onboarding gate
             navigate("/dashboard");
           }
@@ -268,9 +308,69 @@ export default function CreateAccountForm() {
                 </motion.div>
               </div>
 
+              {/* University, Course, Specialization */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* University */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+                  <label className="block text-gray-700 font-semibold mb-2">University</label>
+                  <select
+                      name="university"
+                      value={formData.university}
+                      onChange={handleInputChange}
+                      className={`w-full px-5 py-4 rounded-2xl border ${
+                          errors.university ? "border-red-400 bg-red-50" : "border-gray-300"
+                      } focus:border-[#7D4DF4] focus:ring-4 focus:ring-[#7D4DF4]/20 transition-all bg-white/70`}
+                  >
+                    <option value="">Select University</option>
+                    {universities.map((uni) => (
+                      <option key={uni} value={uni}>{uni}</option>
+                    ))}
+                  </select>
+                  {errors.university && <p className="text-red-500 text-sm mt-1">{errors.university}</p>}
+                </motion.div>
+
+                {/* Course */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+                  <label className="block text-gray-700 font-semibold mb-2">Course</label>
+                  <select
+                      name="course"
+                      value={formData.course}
+                      onChange={handleInputChange}
+                      className={`w-full px-5 py-4 rounded-2xl border ${
+                          errors.course ? "border-red-400 bg-red-50" : "border-gray-300"
+                      } focus:border-[#7D4DF4] focus:ring-4 focus:ring-[#7D4DF4]/20 transition-all bg-white/70`}
+                  >
+                    <option value="">Select Course</option>
+                    {courses.map((course) => (
+                      <option key={course} value={course}>{course}</option>
+                    ))}
+                  </select>
+                  {errors.course && <p className="text-red-500 text-sm mt-1">{errors.course}</p>}
+                </motion.div>
+
+                {/* Specialization */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
+                  <label className="block text-gray-700 font-semibold mb-2">Specialization</label>
+                  <select
+                      name="specialization"
+                      value={formData.specialization}
+                      onChange={handleInputChange}
+                      className={`w-full px-5 py-4 rounded-2xl border ${
+                          errors.specialization ? "border-red-400 bg-red-50" : "border-gray-300"
+                      } focus:border-[#7D4DF4] focus:ring-4 focus:ring-[#7D4DF4]/20 transition-all bg-white/70`}
+                  >
+                    <option value="">Select Specialization</option>
+                    {specializations.map((spec) => (
+                      <option key={spec} value={spec}>{spec}</option>
+                    ))}
+                  </select>
+                  {errors.specialization && <p className="text-red-500 text-sm mt-1">{errors.specialization}</p>}
+                </motion.div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Password */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
                   <label className="block text-gray-700 font-semibold mb-2">Password</label>
                   <input
                       type="password"
@@ -286,7 +386,7 @@ export default function CreateAccountForm() {
                 </motion.div>
 
                 {/* Confirm Password */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}>
                   <label className="block text-gray-700 font-semibold mb-2">Confirm Password</label>
                   <input
                       type="password"

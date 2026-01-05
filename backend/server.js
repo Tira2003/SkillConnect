@@ -2,6 +2,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
@@ -17,6 +18,7 @@ const postRoutes = require("./routes/postRoutes");
 const discussionRoutes = require("./routes/discussionRoutes");
 const skillRequestRoutes = require("./routes/skillRequestRoutes");
 const searchRoutes = require("./routes/searchRoutes");
+const leaderboardRoutes = require("./routes/leaderboardRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -40,6 +42,7 @@ app.set("io", io);
 
 // Middleware
 app.use(express.json());
+app.use(cookieParser());
 app.use(
     cors({
         origin: CLIENT_URLS,
@@ -61,6 +64,7 @@ app.use("/api/posts", postRoutes);
 app.use("/api", discussionRoutes);
 app.use("/api", skillRequestRoutes);
 app.use("/api/search", searchRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
 
 // Env
 const PORT = process.env.PORT || 5000;

@@ -1,4 +1,29 @@
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext";
+import { useFeatureDialog } from "../FeatureDialogContext";
+
 export default function Footer() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { openFeatureDialog } = useFeatureDialog();
+
+  const handleLinkClick = (e, path, featureName) => {
+    e.preventDefault();
+    
+    // If it's home, always allow navigation
+    if (path === "/" || path === "/dashboard") {
+      navigate(isAuthenticated ? "/dashboard" : "/");
+      return;
+    }
+    
+    // For other links, check authentication
+    if (!isAuthenticated) {
+      openFeatureDialog(featureName);
+    } else {
+      navigate(path);
+    }
+  };
+
   return (
     <footer
       className="
@@ -22,11 +47,47 @@ export default function Footer() {
         {/* Column 2 */}
         <div>
           <h3 className="text-lg font-semibold mb-3">Quick Links</h3>
-          <ul className="space-y-2 text-gray-100 text-sm">
-            <li><a href="/" className="hover:text-white transition">Home</a></li>
-            <li><a href="/skill-search" className="hover:text-white transition">Skill Search</a></li>
-            <li><a href="/skill-request" className="hover:text-white transition">Skill Request</a></li>
-            <li><a href="/community" className="hover:text-white transition">Community</a></li>
+          <ul className="space-y-2 text-sm text-white">
+            <li>
+              <a 
+                href="/" 
+                onClick={(e) => handleLinkClick(e, "/", "Home")}
+                className="hover:text-gray-200 transition"
+                style={{ color: '#fff' }}
+              >
+                Home
+              </a>
+            </li>
+            <li>
+              <a 
+                href="/skill-search" 
+                onClick={(e) => handleLinkClick(e, "/skill-search", "Skill Search")}
+                className="hover:text-gray-200 transition"
+                style={{ color: '#fff' }}
+              >
+                Skill Search
+              </a>
+            </li>
+            <li>
+              <a 
+                href="/skill-request" 
+                onClick={(e) => handleLinkClick(e, "/skill-request", "Skill Request")}
+                className="hover:text-gray-200 transition"
+                style={{ color: '#fff' }}
+              >
+                Skill Request
+              </a>
+            </li>
+            <li>
+              <a 
+                href="/community" 
+                onClick={(e) => handleLinkClick(e, "/community", "Community")}
+                className="hover:text-gray-200 transition"
+                style={{ color: '#fff' }}
+              >
+                Community
+              </a>
+            </li>
           </ul>
         </div>
 

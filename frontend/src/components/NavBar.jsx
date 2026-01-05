@@ -1,19 +1,28 @@
 import { useState, useEffect, useRef } from "react";
 import { FaUserCircle, FaBars, FaTimes } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 import { useModal } from "../ModalContext.jsx";
 import { useFeatureDialog } from "../FeatureDialogContext.jsx";
+import NotificationBell from "./NotificationBell.jsx";
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const [visible, setVisible] = useState(true);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
   const { isAuthenticated, user, logout } = useAuth();
   const { openAuthModal } = useModal();
   const { openFeatureDialog } = useFeatureDialog();
+
+  const isActiveLink = (link) => {
+    if (link.label === "Dashboard" || link.label === "Home") {
+      return location.pathname === "/" || location.pathname === "/dashboard";
+    }
+    return location.pathname === link.to;
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,17 +48,16 @@ export default function NavBar() {
   }, []);
 
   const links = [
-    { label: "Home", to: "/", dashboardTo: "/dashboard", requiresAuth: false },
-    { label: "Skill Search", to: "/skill-search", requiresAuth: true },
+    { label: isAuthenticated ? "Dashboard" : "Home", to: "/", dashboardTo: "/dashboard", requiresAuth: false },
     { label: "Skill Request", to: "/skill-request", requiresAuth: true },
-    { label: "Community", to: "/community", requiresAuth: true },
+    { label: "Skill Search", to: "/skill-search", requiresAuth: true },
   ];
 
   const handleLinkClick = (link, e) => {
     if (link.requiresAuth && !isAuthenticated) {
       e.preventDefault();
       openFeatureDialog(link.label);
-    } else if (link.label === "Home") {
+    } else if (link.label === "Dashboard" || link.label === "Home") {
       e.preventDefault();
       navigate(isAuthenticated ? link.dashboardTo : link.to);
     }
@@ -59,7 +67,7 @@ export default function NavBar() {
     setOpen(false);
     if (link.requiresAuth && !isAuthenticated) {
       openFeatureDialog(link.label);
-    } else if (link.label === "Home") {
+    } else if (link.label === "Dashboard" || link.label === "Home") {
       navigate(isAuthenticated ? link.dashboardTo : link.to);
     } else {
       navigate(link.to);
@@ -72,51 +80,73 @@ export default function NavBar() {
         `fixed top-4 left-1/2 -translate-x-1/2
         w-[90%] max-w-5xl
         z-50
-        flex items-center justify-between
+        flex items-center
         px-4 md:px-6 py-3
         bg-[#7D4DF4]/50 
         backdrop-blur-1xl
         rounded-3xl
         border border-white/30
         shadow-lg shadow-[#7D4DF4]/30
-        transform transition-transform duration-300
+        transform transition-all duration-300
         ${visible ? 'translate-y-0' : '-translate-y-full'}`
       }
     >
       {/* Left: Brand */}
-      <Link 
-        to={isAuthenticated ? "/dashboard" : "/"} 
-        className="text-white font-semibold text-xl tracking-wide" 
-        style={{ color: '#fff' }}
-      >
-        SkillConnect
-      </Link>
+      <div className="flex items-center gap-8">
+        <Link 
+          to={isAuthenticated ? "/dashboard" : "/"} 
+          className="text-white font-semibold text-xl tracking-wide" 
+          style={{ color: '#fff' }}
+        >
+          SkillConnect
+        </Link>
 
-      {/* Middle: Nav Links (desktop) */}
-       <div className="hidden md:flex gap-8 text-white text-md font-medium">
+        {/* Middle: Nav Links (desktop) */}
+        <div className="hidden md:flex gap-8 text-white text-md font-medium">
         {links.map((l) => (
           <Link
             key={l.label}
             to={l.to}
             onClick={(e) => handleLinkClick(l, e)}
-            className="text-white hover:text-[#A589FD] transition"
+            className={`transition relative ${
+              isActiveLink(l)
+                ? 'text-white font-bold'
+                : 'text-white/80 hover:text-white'
+            }`}
             style={{ color: '#fff' }}
           >
             {l.label}
+            {isActiveLink(l) && (
+              <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-white rounded-full"></span>
+            )}
           </Link>
         ))}
+        </div>
       </div>
 
-      {/* Right: Profile + Auth Buttons */}
-      <div className="flex items-center gap-3">
+      {/* Spacer */}
+      <div className="flex-1"></div>
+
+      {/* Right: Profile + Auth Buttons - Fixed position */}
+      <div className="flex items-center gap-3 shrink-0">
         {isAuthenticated && (
-          <button
-            onClick={() => navigate('/profile')}
-            className="flex items-center gap-2 text-white hover:text-[#A589FD] transition"
-          >
-            <FaUserCircle className="text-2xl" />
-            <span className="hidden sm:inline">{user?.name || 'Profile'}</span>
-          </button>
+          <>
+            <NotificationBell />
+            <button
+              onClick={() => navigate('/profile')}
+              className={`flex items-center gap-2 transition relative ${
+                location.pathname === '/profile'
+                  ? 'text-white font-bold'
+                  : 'text-white/80 hover:text-white'
+              }`}
+            >
+              <FaUserCircle className="text-2xl" />
+              <span className="hidden sm:inline">{user?.name || 'Profile'}</span>
+              {location.pathname === '/profile' && (
+                <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-white rounded-full"></span>
+              )}
+            </button>
+          </>
         )}
 
         {!isAuthenticated ? (
@@ -143,7 +173,7 @@ export default function NavBar() {
         ) : (
           <button
             onClick={logout}
-            className="px-4 py-1 rounded-xl font-semibold bg-red-600 text-white shadow-md hover:bg-red-700 transition"
+            className="px-4 py-1.5 rounded-xl font-semibold border-2 border-red-400 text-white bg-transparent transition-all duration-300 hover:bg-red-400/10 hover:border-red-500 hover:text-red-500 whitespace-nowrap"
           >
             Logout
           </button>
@@ -202,7 +232,11 @@ export default function NavBar() {
               </>
             ) : (
               <button
-                onClick={() => { setOpen(false); logout(); }}
+                onClick={() => { 
+                  setOpen(false); 
+                  logout(); 
+                  navigate("/");
+                }}
                 className="w-full px-4 py-2 rounded-xl font-semibold bg-red-600 text-white shadow-md hover:bg-red-700 transition"
               >
                 Logout

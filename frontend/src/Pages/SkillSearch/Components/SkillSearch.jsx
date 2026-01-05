@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import SearchBar from "./SearchBar";
 import Filters from "./Filters";
 import ProfileCard from "./ProfileCard";
@@ -7,9 +7,10 @@ import NavBar from "../../../components/NavBar";
 import { useAuth } from "../../../AuthContext";
 
 export default function SkillSearch() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [filters, setFilters] = useState({
     query: "",
     category: "",
@@ -19,13 +20,19 @@ export default function SkillSearch() {
     verifiedOnly: false,
   });
 
-  // Redirect to home if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
+  // Redirect to home if not authenticated or when user logs out
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, navigate, loading]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [filters]);
 
   const fetchUsers = async () => {
-    setLoading(true);
+    setSearchLoading(true);
     try {
       const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const params = new URLSearchParams();
@@ -47,13 +54,17 @@ export default function SkillSearch() {
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, [filters]);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    );
+  }
 
   const handleSearch = (searchQuery) => {
     setFilters({ ...filters, query: searchQuery });
@@ -67,7 +78,13 @@ export default function SkillSearch() {
     <div className="min-h-screen bg-linear-to-br from-[#F3E8FF] to-white w-full">
       <NavBar />
 
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto pt-32 px-4 sm:px-6 lg:px-8">
+        {/* Description */}
+        <div className="mb-8">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#7D4DF4] to-[#A589FD] mb-3">Skill Search</h1>
+          <p className="text-lg md:text-xl text-gray-700 font-medium">Find talented members by searching for specific skills, expertise levels, or filter by categories to connect with the right people.</p>
+        </div>
+        
         <SearchBar onSearch={handleSearch} />
 
         <div className="mt-8 flex flex-col lg:flex-row gap-6">
