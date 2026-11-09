@@ -1,3 +1,4 @@
+<img width="882" height="1032" alt="dashboard" src="https://github.com/user-attachments/assets/f19089e6-dc0c-40da-96f6-0ac9b84237b8" />
 # SkillConnect
 
 SkillConnect is a platform where students can connect, share skills, request help, and build a community. The application features user profiles with skill showcasing, real-time messaging, skill search with intelligent recommendations, and a leaderboard system.
